@@ -1,0 +1,7 @@
+dump
+output
+output_sample
+*result.csv
+.idea
+.ipynb_checkpoints
+__pycache__
