@@ -8,6 +8,7 @@ from tqdm import tqdm
 
 from env import LDA_Environment
 from gpucb import GPUCB
+from util import mkdir_if_not_exist
 
 original_config_dict = {
     "filename_training": "./input/input.txt",
@@ -46,6 +47,8 @@ output_model_filename = os.path.join(output_dir, 'learned_agent.pkl')
 
 n_iter = 100
 ########################
+
+mkdir_if_not_exist(output_dir)
 
 
 if reload_model_filename is not None:
