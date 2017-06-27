@@ -11,7 +11,7 @@ from util import mkdir_if_not_exist
 
 
 class GPUCB(object):
-    def __init__(self, meshgrid, environment, beta=100., noise=False):
+    def __init__(self, environment, beta=100., meshgrid=None, noise=False, gt_available=False):
         '''
         meshgrid: Output from np.methgrid.
         e.g. np.meshgrid(np.arange(-1, 1, 0.1), np.arange(-1, 1, 0.1)) for 2D space
@@ -22,21 +22,40 @@ class GPUCB(object):
         balance. If beta is large, it emphasizes the variance of the unexplored
         solution solution (i.e. larger curiosity)
         '''
-        self.meshgrid = np.array(meshgrid)
+
         self.environment = environment
         self.beta = beta
 
-        self.X_grid = self.meshgrid.reshape(self.meshgrid.shape[0], -1).T
+        if meshgrid:
+            self.meshgrid = np.array(meshgrid)
+            self.X_grid = self.meshgrid.reshape(self.meshgrid.shape[0], -1).T
+
+        else:
+            self.X_grid = environment.parameter_df[environment.gp_param_names].as_matrix()
+
+            tmp = []
+            for gp_param_name in environment.gp_param_names:
+                tmp.append(environment.parameter_df[gp_param_name].unique())
+            self.meshgrid = np.array(np.meshgrid(*tmp))
+
         self.mu = np.array([0. for _ in range(self.X_grid.shape[0])])
         self.sigma = np.array([0.5 for _ in range(self.X_grid.shape[0])])
 
-        if self.X_grid.shape[1] == 2:
+        if self.X_grid.shape[1] == 2 and gt_available:
             nrow, ncol = self.meshgrid.shape[1:]
-            self.z = self.environment.sample(self.X_grid.T, get_ground_truth=True).reshape(nrow, ncol)
+            self.z = self.environment.sample(self.X_grid.T, get_ground_truth=True, idx=-1).reshape(nrow, ncol)
+        else:
+            self.z = None
 
         self.X = []
         self.T = []
-        self.kernel_list = []
+
+        if environment.reload:
+            X = environment.result_df[environment.gp_param_names].as_matrix()
+            T = environment.result_df['output'].as_matrix()
+
+            self.X = [np.array(x) for x in X.tolist()]
+            self.T = T.tolist()
 
         # Instanciate a Gaussian Process model
         my_kernel = C(1, constant_value_bounds="fixed") * RBF(2,
@@ -53,21 +72,20 @@ class GPUCB(object):
 
     def learn(self):
         grid_idx = self.argmax_ucb()
-        self.sample(self.X_grid[grid_idx])
-
+        self.sample(self.X_grid[grid_idx], grid_idx)
         self.gp.fit(self.X, self.T)
-        self.kernel_list.append(self.gp.kernel_)
+
         self.mu, self.sigma = self.gp.predict(self.X_grid, return_std=True)
 
-    def sample(self, x):
-        t = self.environment.sample(x)
+    def sample(self, x, grid_idx):
+        t = self.environment.sample(x, grid_idx)
         self.X.append(x)
         self.T.append(t)
 
     def plot(self, output_dir):
 
         if self.X_grid.shape[1] != 2:
-            print("plotting only supports X_grid that consisted of 2 dimentions.")
+            print("OOPS! Plotting only supports X_grid that consisted of 2 dimentions.")
             return
 
         fig = plt.figure()
@@ -80,8 +98,8 @@ class GPUCB(object):
         ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1],
                           ucb_mesh.reshape(self.meshgrid[0].shape), alpha=0.5, color='y')
 
-        #     ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1], self.z, alpha=0.3, color='b')
-
+        if self.z is not None:
+            ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1], self.z, alpha=0.3, color='b')
 
         ax.scatter([x[0] for x in self.X], [x[1] for x in self.X], self.T, c='r',
                    marker='o', alpha=1.0)

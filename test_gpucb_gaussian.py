@@ -1,16 +1,18 @@
 # coding: utf-8
 import os
 
-# from tqdm import tqdm_notebook as tqdm
+import numpy as np
 from tqdm import tqdm
+# from tqdm import tqdm_notebook as tqdm
 
-from env import LDA_Environment
+from env import GaussianEnvironment
 from gpucb import GPUCB
 
+
 ########################
-output_dir = 'output'
-paramerter_filename = 'lda_param_2dim.csv'
-result_filename = 'lda_result_2dim.csv'
+output_dir = 'output_gaussian'
+paramerter_filename = 'gaussian_param_2dim.csv'
+result_filename = 'gaussian_result_2dim.csv'
 
 reload = True
 # reload = False
@@ -19,7 +21,7 @@ n_iter = 100
 beta = 36.
 ########################
 
-env = LDA_Environment(parameter_filename=paramerter_filename, result_filename=result_filename, output_dir=output_dir,
+env = GaussianEnvironment(parameter_filename=paramerter_filename, result_filename=result_filename, output_dir=output_dir,
                       reload=reload)
 
 agent = GPUCB(env, beta=beta)

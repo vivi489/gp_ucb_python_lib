@@ -15,50 +15,59 @@ from util import mkdir_if_not_exist
 class BasicEnvironment(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, sorted_keys, result_filename='result.csv', output_dir='output'):
+    def __init__(self, parameter_filename="param.csv", result_filename='result.csv', output_dir='output',
+                 reload=False):
         self.result_filename = result_filename
+        self.reload = reload
+
+        self.parameter_df = pd.read_csv(parameter_filename)
+
+        self.gp_param_names = sorted([x for x in self.parameter_df.columns.tolist() if x.find('gp_') >= 0])
+        self.param_names = sorted([x for x in self.parameter_df.columns.tolist() if x.find('gp_') < 0])
+
+        self.parameter_df = self.parameter_df[self.gp_param_names + self.param_names]
 
         if os.path.exists(result_filename):
-            msg = "Oops! %s has already existed... Please change the filename or set reload flag to be true!" % result_filename
-            raise AttributeError(msg)
+            if reload:
+                print(result_filename + " will be loaded!!")
+            else:
+                msg = "Oops! %s has already existed... Please change the filename or set reload flag to be true!" % result_filename
+                raise AttributeError(msg)
 
-        self.hyper_param_names = sorted_keys
+        else:
+            if reload:
+                msg = "Oops! Reload flag is true, but %s does not exist..." % result_filename
+                raise AttributeError(msg)
+            else:
+                with open(result_filename, 'w') as f:
+                    columns = self.gp_param_names + self.param_names + ['output']
+                    f.write(','.join(columns) + os.linesep)
 
-        with open(result_filename, 'w') as f:
-            columns = self.hyper_param_names + ['output']
-            f.write(','.join(columns) + os.linesep)
+                print(result_filename + " is created!")
 
-        self.df = pd.read_csv(result_filename)
-
+        self.result_df = pd.read_csv(result_filename)
         mkdir_if_not_exist(output_dir)
         self.output_dir = output_dir
 
     @abstractmethod
-    def run_model(self, *args, **kargs):
+    def run_model(self, n_model, idx):
         pass
 
-    def preprocess_param(self, x):
-        return np.array(x)
-
-    def sample(self, x, get_ground_truth=False):
+    def sample(self, x, idx, get_ground_truth=False):
         if get_ground_truth:
-            x = self.preprocess_param(x)
-            result = self.run_model(0, *x)
+            result = self.run_model(0, )
             return result
 
-        self.df = pd.read_csv(self.result_filename)
-        n_model = self.df.shape[0] + 1
-
-        x = self.preprocess_param(x)
+        n_model = self.result_df.shape[0] + 1
 
         prefix_msg = 'No.%04d model started!  ' % n_model
-        pair_msg = ', '.join(['{}: {}'.format(k, v) for k, v in zip(self.hyper_param_names, x)])
+        pair_msg = ', '.join(['{}: {}'.format(k, v) for k, v in zip(self.param_names, x)])
         print(prefix_msg + pair_msg)
 
-        result = self.run_model(n_model, *x)
+        result = self.run_model(n_model, idx)
 
-        self.df.loc[len(self.df)] = list(x) + [result]
-        self.df.to_csv(self.result_filename, index=False)
+        self.result_df.loc[len(self.result_df)] = self.parameter_df.iloc[idx, :].values.tolist() + [result]
+        self.result_df.to_csv(self.result_filename, index=False)
 
         msg = 'No.%04d model finished! Result was %f' % (n_model, result)
         print(msg)
@@ -67,11 +76,11 @@ class BasicEnvironment(object):
 
 
 class GaussianEnvironment(BasicEnvironment):
-    def __init__(self, sorted_keys, result_filename, output_dir):
-        super().__init__(sorted_keys, result_filename, output_dir)
+    def __init__(self, parameter_filename, result_filename, output_dir, reload):
+        super().__init__(parameter_filename, result_filename, output_dir, reload)
 
-    def run_model(self, model_number, *x):
-        x = np.array(x)
+    def run_model(self, model_number, idx):
+        x = self.parameter_df[self.gp_param_names].iloc[idx, :].as_matrix()
 
         mean1 = [3, 3]
         cov1 = [[2, 0], [0, 2]]
@@ -96,39 +105,51 @@ class GaussianEnvironment(BasicEnvironment):
 
 
 class LDA_Environment(BasicEnvironment):
-    def __init__(self, sorted_keys, lda_output_filename, output_dir, original_config, default_n_cluster=8,
-                 lda_n_iter=400):
-        super().__init__(sorted_keys, lda_output_filename, output_dir)
+    def __init__(self, parameter_filename="lda_param.csv", result_filename='result.csv',
+                 output_dir='output', reload=False):
+        super().__init__(parameter_filename, result_filename, output_dir, reload=reload)
 
-        self.original_config = original_config
-        self.default_n_cluster = default_n_cluster
-        self.lda_n_iter = lda_n_iter
+        self.default_config_dic = {
+            "filename_training": "./input/input.txt",
+            "filename_result": "./output/output.txt",
+            "filename_testing": "./input/input.txt",
+            "filename_model": "./output/model",
+            "pathname_dump": "./dump/",
+            "HAS_ID": 0,
+            "ALPHA": 1,
+            "FEATURE_NUM": 1,
+            "CLUSTER_NUM": 8,
+            "DATA_SIZE": 0,
+            "DOC_SIZE": 0,
+            "THREAD_NUM": 2,
+            "start": 0,
+            "end": 10,
+            "TYPE_LIST": [
+                "Categorical:0,1,2,3,4,5,6,7,8,9;1"
+            ]
+        }
 
-    def preprocess_param(self, x):
-        # key order must be alpha, beta, n_cluster
-        y = np.ones_like(x)
-        y[:2] = 10 ** x[:2]
-        y[2:] = x[2:]
-        return y
-
-    def set_my_config(self, model_number, alpha, beta, n_cluster):
-        config = copy.deepcopy(self.original_config)
+    def set_my_config(self, model_number, series):
+        config = copy.deepcopy(self.default_config_dic)
 
         config['filename_result'] = './output/output%04d.txt' % model_number
         config['filename_model'] = './output/model%04d' % model_number
         config["pathname_dump"] = "./dump/dump%04d/" % model_number
 
-        config['ALPHA'] = alpha
-        config['TYPE_LIST'][0] = "Categorical:0,1,2,3,4,5,6,7,8,9;%f" % beta
-        config['CLUSTER_NUM'] = n_cluster
-        config['end'] = self.lda_n_iter
+        if 'alpha' in series.keys():
+            config['ALPHA'] = series.alpha
+        if 'beta' in series.keys():
+            config['TYPE_LIST'][0] = "Categorical:0,1,2,3,4,5,6,7,8,9;%f" % series.beta
+        if 'n_cluster' in series.keys():
+            config['CLUSTER_NUM'] = series.n_cluster
 
         mkdir_if_not_exist(config["pathname_dump"])
 
         return config
 
-    def run_lda(self, model_number, alpha, beta, n_cluster):
-        conf = self.set_my_config(model_number, alpha, beta, n_cluster)
+    def run_model(self, model_number, idx):
+        series = self.parameter_df.iloc[idx, :]
+        conf = self.set_my_config(model_number, series)
         conf_fn = os.path.join(self.output_dir, 'conf%04d.json' % model_number)
 
         with open(conf_fn, "w") as f:
@@ -141,7 +162,3 @@ class LDA_Environment(BasicEnvironment):
         loglikelihood = np.loadtxt(conf['pathname_dump'] + 'loglikelihood.dmp')[-1]
 
         return loglikelihood
-
-    def run_model(self, model_number, alpha, beta, n_cluster):
-        res = self.run_lda(model_number, alpha, beta, n_cluster)
-        return res
