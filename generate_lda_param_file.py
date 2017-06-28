@@ -1,5 +1,9 @@
+import os
+
 import numpy as np
 import pandas as pd
+
+from util import mkdir_if_not_exist
 
 gp_param_dic = {
     "alpha": np.arange(-2, 2.01, 0.2),
@@ -13,18 +17,15 @@ gp_param2lda_param = {
     "n_cluster": lambda x: x
 }
 
-# del gp_param_dic['n_cluster']
-# del gp_param2lda_param['n_cluster']
+output_dir = os.path.join('param_files', 'lda')
+mkdir_if_not_exist(output_dir)
 
-sorted_keys = sorted(gp_param_dic.keys())
+for k, v in gp_param_dic.items():
+    output_filename = os.path.join(output_dir, k) + ".csv"
+    res = pd.DataFrame({
+        k: v
+    })
+    res['gp_' + k] = res[k].apply(gp_param2lda_param[k])
 
-meshgrid = np.array(np.meshgrid(*[gp_param_dic[k] for k in sorted_keys]))
-
-print(meshgrid.shape)
-grid_df = pd.DataFrame(meshgrid.reshape(meshgrid.shape[0], -1).T, columns=["gp_" + x for x in sorted_keys])
-
-for key in sorted_keys:
-    grid_df[key] = grid_df["gp_" + key].apply(gp_param2lda_param[key])
-
-print(grid_df)
-grid_df.to_csv('lda_param_2dim.csv', index=False)
+    res.to_csv(output_filename, index=False)
+    print(output_filename + " was created")

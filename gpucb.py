@@ -11,7 +11,7 @@ from util import mkdir_if_not_exist
 
 
 class GPUCB(object):
-    def __init__(self, environment, beta=100., meshgrid=None, noise=False, gt_available=False):
+    def __init__(self, meshgrid, environment, beta=100., noise=False, gt_available=False):
         '''
         meshgrid: Output from np.methgrid.
         e.g. np.meshgrid(np.arange(-1, 1, 0.1), np.arange(-1, 1, 0.1)) for 2D space
@@ -26,17 +26,8 @@ class GPUCB(object):
         self.environment = environment
         self.beta = beta
 
-        if meshgrid:
-            self.meshgrid = np.array(meshgrid)
-            self.X_grid = self.meshgrid.reshape(self.meshgrid.shape[0], -1).T
-
-        else:
-            self.X_grid = environment.parameter_df[environment.gp_param_names].as_matrix()
-
-            tmp = []
-            for gp_param_name in environment.gp_param_names:
-                tmp.append(environment.parameter_df[gp_param_name].unique())
-            self.meshgrid = np.array(np.meshgrid(*tmp))
+        self.meshgrid = np.array(meshgrid)
+        self.X_grid = self.meshgrid.reshape(self.meshgrid.shape[0], -1).T
 
         self.mu = np.array([0. for _ in range(self.X_grid.shape[0])])
         self.sigma = np.array([0.5 for _ in range(self.X_grid.shape[0])])
@@ -72,13 +63,13 @@ class GPUCB(object):
 
     def learn(self):
         grid_idx = self.argmax_ucb()
-        self.sample(self.X_grid[grid_idx], grid_idx)
+        self.sample(self.X_grid[grid_idx])
         self.gp.fit(self.X, self.T)
 
         self.mu, self.sigma = self.gp.predict(self.X_grid, return_std=True)
 
-    def sample(self, x, grid_idx):
-        t = self.environment.sample(x, grid_idx)
+    def sample(self, x):
+        t = self.environment.sample(x)
         self.X.append(x)
         self.T.append(t)
 

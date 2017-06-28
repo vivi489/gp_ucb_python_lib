@@ -15,17 +15,14 @@ from util import mkdir_if_not_exist
 class BasicEnvironment(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, parameter_filename="param.csv", result_filename='result.csv', output_dir='output',
+    def __init__(self, gp_param2model_param_dic, result_filename='result.csv', output_dir='output',
                  reload=False):
         self.result_filename = result_filename
         self.reload = reload
 
-        self.parameter_df = pd.read_csv(parameter_filename)
-
-        self.gp_param_names = sorted([x for x in self.parameter_df.columns.tolist() if x.find('gp_') >= 0])
-        self.param_names = sorted([x for x in self.parameter_df.columns.tolist() if x.find('gp_') < 0])
-
-        self.parameter_df = self.parameter_df[self.gp_param_names + self.param_names]
+        self.param_names = sorted(gp_param2model_param_dic.keys())
+        self.gp_param_names = ['gp_' + x for x in sorted(gp_param2model_param_dic.keys())]
+        self.gp_param2model_param_dic = gp_param2model_param_dic
 
         if os.path.exists(result_filename):
             if reload:
@@ -49,24 +46,41 @@ class BasicEnvironment(object):
         mkdir_if_not_exist(output_dir)
         self.output_dir = output_dir
 
+    def preprocess_x(self, x):
+        x = np.array(x)
+
+        assert x.ndim == 1
+        assert len(x) == len(
+            self.gp_param2model_param_dic), "oops! len(x)=%d, len(self.gp_param2model_param_dic)=%d" % (
+            len(x), len(self.gp_param2model_param_dic))
+
+        res = np.zeros_like(x)
+        for i, (key, gp2model) in enumerate(self.gp_param2model_param_dic.items()):
+            res[i] = gp2model[x[i]]
+
+        return res
+
     @abstractmethod
-    def run_model(self, n_model, idx):
+    def run_model(self, n_model, x):
         pass
 
-    def sample(self, x, idx, get_ground_truth=False):
+    def sample(self, x, get_ground_truth=False):
         if get_ground_truth:
             result = self.run_model(0, )
             return result
 
         n_model = self.result_df.shape[0] + 1
 
+        processed_x = self.preprocess_x(x)
+
         prefix_msg = 'No.%04d model started!  ' % n_model
-        pair_msg = ', '.join(['{}: {}'.format(k, v) for k, v in zip(self.param_names, x)])
+        pair_msg = ', '.join(['{}: {}'.format(k, v) for k, v in zip(self.param_names, processed_x)])
         print(prefix_msg + pair_msg)
 
-        result = self.run_model(n_model, idx)
+        result = self.run_model(n_model, processed_x)
 
-        self.result_df.loc[len(self.result_df)] = self.parameter_df.iloc[idx, :].values.tolist() + [result]
+        self.result_df.loc[len(self.result_df)] = list(x) + list(processed_x) + [result]
+
         self.result_df.to_csv(self.result_filename, index=False)
 
         msg = 'No.%04d model finished! Result was %f' % (n_model, result)
@@ -75,12 +89,12 @@ class BasicEnvironment(object):
         return result
 
 
-class GaussianEnvironment(BasicEnvironment):
-    def __init__(self, parameter_filename, result_filename, output_dir, reload):
-        super().__init__(parameter_filename, result_filename, output_dir, reload)
 
-    def run_model(self, model_number, idx):
-        x = self.parameter_df[self.gp_param_names].iloc[idx, :].as_matrix()
+class GaussianEnvironment(BasicEnvironment):
+    def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
+        super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
+
+    def run_model(self, model_number, x):
 
         mean1 = [3, 3]
         cov1 = [[2, 0], [0, 2]]
@@ -105,9 +119,9 @@ class GaussianEnvironment(BasicEnvironment):
 
 
 class LDA_Environment(BasicEnvironment):
-    def __init__(self, parameter_filename="lda_param.csv", result_filename='result.csv',
+    def __init__(self, gp_param2model_param_dic, result_filename='result.csv',
                  output_dir='output', reload=False):
-        super().__init__(parameter_filename, result_filename, output_dir, reload=reload)
+        super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload=reload)
 
         self.default_config_dic = {
             "filename_training": "./input/input.txt",
@@ -123,42 +137,40 @@ class LDA_Environment(BasicEnvironment):
             "DOC_SIZE": 0,
             "THREAD_NUM": 2,
             "start": 0,
-            "end": 10,
+            "end": 1,
             "TYPE_LIST": [
                 "Categorical:0,1,2,3,4,5,6,7,8,9;1"
             ]
         }
 
-    def set_my_config(self, model_number, series):
+    def set_my_config(self, model_number, x):
         config = copy.deepcopy(self.default_config_dic)
 
         config['filename_result'] = './output/output%04d.txt' % model_number
         config['filename_model'] = './output/model%04d' % model_number
         config["pathname_dump"] = "./dump/dump%04d/" % model_number
 
-        if 'alpha' in series.keys():
-            config['ALPHA'] = series.alpha
-        if 'beta' in series.keys():
-            config['TYPE_LIST'][0] = "Categorical:0,1,2,3,4,5,6,7,8,9;%f" % series.beta
-        if 'n_cluster' in series.keys():
-            config['CLUSTER_NUM'] = series.n_cluster
+        # TODO: hard coding
+        config['ALPHA'] = x[0]
+        config['TYPE_LIST'][0] = "Categorical:0,1,2,3,4,5,6,7,8,9;%f" % x[1]
+        config['CLUSTER_NUM'] = x[2]
 
         mkdir_if_not_exist(config["pathname_dump"])
 
         return config
 
-    def run_model(self, model_number, idx):
-        series = self.parameter_df.iloc[idx, :]
-        conf = self.set_my_config(model_number, series)
+    def run_model(self, model_number, x):
+        conf = self.set_my_config(model_number, x)
         conf_fn = os.path.join(self.output_dir, 'conf%04d.json' % model_number)
 
         with open(conf_fn, "w") as f:
             json.dump(conf, f, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
 
-        cmd = "java -jar IndependentMixtureModelMCMC.jar training %s" % conf_fn
+        cmd = "java -jar IndependentMixtureModelMCMC.jar trainEing %s" % conf_fn
 
         subprocess.call(cmd, shell=True)
 
         loglikelihood = np.loadtxt(conf['pathname_dump'] + 'loglikelihood.dmp')[-1]
 
         return loglikelihood
+
