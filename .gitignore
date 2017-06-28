@@ -8,3 +8,4 @@ output_gaussian
 __pycache__
 *param*.csv
 *.png
+param_files
