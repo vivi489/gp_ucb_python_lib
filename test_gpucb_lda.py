@@ -6,26 +6,23 @@ import pandas as pd
 # from tqdm import tqdm_notebook as tqdm
 from tqdm import tqdm
 
-from env import BasicEnvironment
+from env import LDA_Environment
 from gpucb import GPUCB
 
 ########################
 output_dir = 'output'
-# paramerter_filename = 'lda_param_2dim.csv'
+result_filename = 'lda_result.csv'
+
 parameter_dir = os.path.join('param_files', 'lda')
-result_filename = 'lda_result_2dim.csv'
+template_cmdline_filename = 'cmdline_lda.txt'
+template_paramter_filename = 'parameter_lda.json'
 
 reload = True
 # reload = False
+
 n_iter = 100
-
 beta = 36.
-
-noise = False
-
-
-
-
+noise = True
 #####################
 
 param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
@@ -41,7 +38,10 @@ for param_name in param_names:
 
     gp_param2model_param_dic[param_name] = param_df.to_dict()['gp_' + param_name]
 
-env = LDA_Environment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
+env = LDA_Environment(gp_param2model_param_dic=gp_param2model_param_dic,
+                      template_cmdline_filename=template_cmdline_filename,
+                      template_paramter_filename=template_paramter_filename,
+                      result_filename=result_filename,
                       output_dir=output_dir,
                       reload=reload)
 

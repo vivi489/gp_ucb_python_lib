@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 from abc import ABCMeta, abstractmethod
+from string import Template
 
 import numpy as np
 import pandas as pd
@@ -89,7 +90,6 @@ class BasicEnvironment(object):
         return result
 
 
-
 class GaussianEnvironment(BasicEnvironment):
     def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
         super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
@@ -118,59 +118,52 @@ class GaussianEnvironment(BasicEnvironment):
         return y
 
 
-class LDA_Environment(BasicEnvironment):
-    def __init__(self, gp_param2model_param_dic, result_filename='result.csv',
-                 output_dir='output', reload=False):
+class Cmdline_Environment(BasicEnvironment):
+    def __init__(self, gp_param2model_param_dic, template_cmdline_filename, template_paramter_filename=None,
+                 result_filename='result.csv',
+                 output_dir='output', reload=False, ):
         super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload=reload)
 
-        self.default_config_dic = {
-            "filename_training": "./input/input.txt",
-            "filename_result": "./output/output.txt",
-            "filename_testing": "./input/input.txt",
-            "filename_model": "./output/model",
-            "pathname_dump": "./dump/",
-            "HAS_ID": 0,
-            "ALPHA": 1,
-            "FEATURE_NUM": 1,
-            "CLUSTER_NUM": 8,
-            "DATA_SIZE": 0,
-            "DOC_SIZE": 0,
-            "THREAD_NUM": 2,
-            "start": 0,
-            "end": 1,
-            "TYPE_LIST": [
-                "Categorical:0,1,2,3,4,5,6,7,8,9;1"
-            ]
-        }
+        with open(template_cmdline_filename) as f:
+            self.template_cmdline = Template(f.read())
 
-    def set_my_config(self, model_number, x):
-        config = copy.deepcopy(self.default_config_dic)
+        if template_paramter_filename:
+            with open(template_paramter_filename) as f:
+                self.template_paramter = Template(f.read())
+        else:
+            self.template_paramter = None
 
-        config['filename_result'] = './output/output%04d.txt' % model_number
-        config['filename_model'] = './output/model%04d' % model_number
-        config["pathname_dump"] = "./dump/dump%04d/" % model_number
 
-        # TODO: hard coding
-        config['ALPHA'] = x[0]
-        config['TYPE_LIST'][0] = "Categorical:0,1,2,3,4,5,6,7,8,9;%f" % x[1]
-        config['CLUSTER_NUM'] = x[2]
-
-        mkdir_if_not_exist(config["pathname_dump"])
-
-        return config
+    @abstractmethod
+    def get_result(self):
+        pass
 
     def run_model(self, model_number, x):
-        conf = self.set_my_config(model_number, x)
-        conf_fn = os.path.join(self.output_dir, 'conf%04d.json' % model_number)
+        my_param_dic = {k: one_x for k, one_x in zip(self.param_names, list(x))}
+        my_param_dic['model_number'] = "%04d" % model_number
 
-        with open(conf_fn, "w") as f:
-            json.dump(conf, f, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
+        if self.template_paramter is not None:
+            # self.conf = self.set_my_config(my_param_dic)
+            self.parameter_dic = json.loads(self.template_paramter.substitute(my_param_dic))
 
-        cmd = "java -jar IndependentMixtureModelMCMC.jar trainEing %s" % conf_fn
+            mkdir_if_not_exist(self.parameter_dic["pathname_dump"])  ## TODO only for LDA
+
+            conf_fn = os.path.join(self.output_dir, 'conf%04d.json' % model_number)
+
+            with open(conf_fn, "w") as f:
+                json.dump(self.parameter_dic, f, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
+
+            my_param_dic['param_file'] = conf_fn
+
+        cmd = self.template_cmdline.substitute(my_param_dic)
 
         subprocess.call(cmd, shell=True)
 
-        loglikelihood = np.loadtxt(conf['pathname_dump'] + 'loglikelihood.dmp')[-1]
+        loglikelihood = self.get_result()
 
         return loglikelihood
 
+
+class LDA_Environment(Cmdline_Environment):
+    def get_result(self):
+        return np.loadtxt(self.parameter_dic['pathname_dump'] + 'loglikelihood.dmp')[-1]

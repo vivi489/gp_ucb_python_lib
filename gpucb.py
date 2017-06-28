@@ -11,7 +11,7 @@ from util import mkdir_if_not_exist
 
 
 class GPUCB(object):
-    def __init__(self, meshgrid, environment, beta=100., noise=False, gt_available=False):
+    def __init__(self, meshgrid, environment, beta=100., noise=True, gt_available=False):
         '''
         meshgrid: Output from np.methgrid.
         e.g. np.meshgrid(np.arange(-1, 1, 0.1), np.arange(-1, 1, 0.1)) for 2D space

@@ -1,0 +1,1 @@
+java -jar IndependentMixtureModelMCMC.jar training $param_file
