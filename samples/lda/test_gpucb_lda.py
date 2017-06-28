@@ -6,10 +6,12 @@ import pandas as pd
 # from tqdm import tqdm_notebook as tqdm
 from tqdm import tqdm
 
-from env import LDA_Environment
+
 from gpucb import GPUCB
 
 ########################
+from samples.lda.lda_env import MyEnvironment
+
 output_dir = 'output'
 result_filename = 'lda_result.csv'
 
@@ -38,7 +40,7 @@ for param_name in param_names:
 
     gp_param2model_param_dic[param_name] = param_df.to_dict()['gp_' + param_name]
 
-env = LDA_Environment(gp_param2model_param_dic=gp_param2model_param_dic,
+env = MyEnvironment(gp_param2model_param_dic=gp_param2model_param_dic,
                       template_cmdline_filename=template_cmdline_filename,
                       template_paramter_filename=template_paramter_filename,
                       result_filename=result_filename,

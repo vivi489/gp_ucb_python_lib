@@ -163,7 +163,3 @@ class Cmdline_Environment(BasicEnvironment):
 
         return loglikelihood
 
-
-class LDA_Environment(Cmdline_Environment):
-    def get_result(self):
-        return np.loadtxt(self.parameter_dic['pathname_dump'] + 'loglikelihood.dmp')[-1]
