@@ -1,4 +1,6 @@
 # coding: utf-8
+import argparse
+import json
 import os
 
 import numpy as np
@@ -6,26 +8,35 @@ import pandas as pd
 # from tqdm import tqdm_notebook as tqdm
 from tqdm import tqdm
 
-
 from gpucb import GPUCB
+from util import mkdir_if_not_exist
 
-########################
-from samples.lda.lda_env import MyEnvironment
+parser = argparse.ArgumentParser(description='Draw a loss figure')
+parser.add_argument('-i', '--input', type=str, default='parameter_gp.json', help='parameter_gp filename')
 
-output_dir = 'output'
-result_filename = 'lda_result.csv'
+args = parser.parse_args()
 
-parameter_dir = os.path.join('param_files', 'lda')
-template_cmdline_filename = 'cmdline_lda.txt'
-template_paramter_filename = 'parameter_lda.json'
+gp_paramter_filename = args.input
 
-reload = True
-# reload = False
+with open(gp_paramter_filename, 'r') as f:
+    gp_parameter_dic = json.load(f)
 
-n_iter = 100
-beta = 36.
-noise = True
-#####################
+import_env_str = "from %s import MyEnvironment" % gp_parameter_dic['env']
+exec(import_env_str)
+
+output_dir = gp_parameter_dic['output_dir']
+mkdir_if_not_exist(output_dir)
+with open('parameter_gp_output.json') as f:
+    json.dump(gp_parameter_dic, f, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
+
+result_filename = gp_parameter_dic['result_filename']
+parameter_dir = gp_parameter_dic['parameter_dir']
+template_cmdline_filename = gp_parameter_dic['template_cmdline_filename']
+template_parameter_filename = gp_parameter_dic['template_parameter_filename']
+reload = gp_parameter_dic['reload']
+n_iter = gp_parameter_dic['n_iter']
+beta = gp_parameter_dic['beta']
+noise = gp_parameter_dic['noise']
 
 param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
 
@@ -41,11 +52,11 @@ for param_name in param_names:
     gp_param2model_param_dic[param_name] = param_df.to_dict()['gp_' + param_name]
 
 env = MyEnvironment(gp_param2model_param_dic=gp_param2model_param_dic,
-                      template_cmdline_filename=template_cmdline_filename,
-                      template_paramter_filename=template_paramter_filename,
-                      result_filename=result_filename,
-                      output_dir=output_dir,
-                      reload=reload)
+                    template_cmdline_filename=template_cmdline_filename,
+                    template_paramter_filename=template_parameter_filename,
+                    result_filename=result_filename,
+                    output_dir=output_dir,
+                    reload=reload)
 
 agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=beta, noise=noise)
 

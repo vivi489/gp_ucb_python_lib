@@ -1,0 +1,12 @@
+{
+    "output_dir": "output",
+    "result_filename": "lda_result.csv",
+    "parameter_dir": "param_files/lda",
+    "template_cmdline_filename": "cmdline_lda.txt",
+    "template_parameter_filename": "parameter_lda.json",
+    "reload": false,
+    "n_iter": 100,
+    "beta": 36,
+    "noise": true,
+    "env": "samples.lda.lda_env"
+}
