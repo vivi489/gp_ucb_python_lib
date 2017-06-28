@@ -1,5 +1,4 @@
 # coding: utf-8
-import copy
 import json
 import os
 import subprocess
@@ -133,7 +132,6 @@ class Cmdline_Environment(BasicEnvironment):
         else:
             self.template_paramter = None
 
-
     @abstractmethod
     def get_result(self):
         pass
@@ -146,7 +144,8 @@ class Cmdline_Environment(BasicEnvironment):
             # self.conf = self.set_my_config(my_param_dic)
             self.parameter_dic = json.loads(self.template_paramter.substitute(my_param_dic))
 
-            mkdir_if_not_exist(self.parameter_dic["pathname_dump"])  ## TODO only for LDA
+            if "pathname_dump" in self.parameter_dic.keys():
+                mkdir_if_not_exist(self.parameter_dic["pathname_dump"])  ## TODO: only for LDA ###
 
             conf_fn = os.path.join(self.output_dir, 'conf%04d.json' % model_number)
 
@@ -162,4 +161,3 @@ class Cmdline_Environment(BasicEnvironment):
         loglikelihood = self.get_result()
 
         return loglikelihood
-

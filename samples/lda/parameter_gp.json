@@ -1,6 +1,6 @@
 {
     "output_dir": "output",
-    "result_filename": "lda_result.csv",
+    "result_filename": "output/lda_result.csv",
     "parameter_dir": "param_files/lda",
     "template_cmdline_filename": "cmdline_lda.txt",
     "template_parameter_filename": "parameter_lda.json",
@@ -8,5 +8,6 @@
     "n_iter": 100,
     "beta": 36,
     "noise": true,
-    "env": "samples.lda.lda_env"
+    "my_env_path": "/Users/ar-kohei.watanabe/Codes/gp_ucb_python_lib/samples/lda/lda_env.py"
+
 }

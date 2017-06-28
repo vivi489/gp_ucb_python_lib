@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import sys
 
 import numpy as np
 import pandas as pd
@@ -21,12 +22,17 @@ gp_paramter_filename = args.input
 with open(gp_paramter_filename, 'r') as f:
     gp_parameter_dic = json.load(f)
 
-import_env_str = "from %s import MyEnvironment" % gp_parameter_dic['env']
+full_path = gp_parameter_dic['my_env_path']
+env_path, env_filename = os.path.split(full_path)
+
+sys.path.append(env_path)
+
+import_env_str = "from %s import MyEnvironment" % env_filename.replace('.py', '')
 exec(import_env_str)
 
 output_dir = gp_parameter_dic['output_dir']
 mkdir_if_not_exist(output_dir)
-with open('parameter_gp_output.json') as f:
+with open(os.path.join(output_dir, 'parameter_gp_output.json'), 'w') as f:
     json.dump(gp_parameter_dic, f, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
 
 result_filename = gp_parameter_dic['result_filename']
