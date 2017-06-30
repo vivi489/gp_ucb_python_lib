@@ -1,8 +1,5 @@
-import sys
-
 import numpy as np
 
-sys.path.append("/Users/ar-kohei.watanabe/Codes/gp_ucb_python_lib/lib")
 from env import Cmdline_Environment
 
 

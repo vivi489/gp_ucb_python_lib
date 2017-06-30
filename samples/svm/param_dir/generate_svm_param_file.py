@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-sys.path.append("/Users/ar-kohei.watanabe/Codes/gp_ucb_python_lib/lib")
+sys.path.append("../../../lib")
 from util import mkdir_if_not_exist
 
 gp_param_dic = {
