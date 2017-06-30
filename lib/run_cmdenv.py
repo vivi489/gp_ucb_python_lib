@@ -61,7 +61,7 @@ for param_name in param_names:
     if cmdline_paramfile_str == replaced:
         param_names.remove(param_name)
         print(
-            "%s exist in your param dir. But not exist in your cmdline or parameter file, so %s.csv is ignored" % param_name)
+            "%s exist in your param dir. But not exist in your cmdline or parameter file, so %s.csv is ignored" % (param_name, param_name))
 
     else:
         print("%s is one hyper-paramter!" % param_name)
