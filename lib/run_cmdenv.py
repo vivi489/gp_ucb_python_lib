@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import sys
+from string import Template
 
 import numpy as np
 import pandas as pd
@@ -44,7 +45,26 @@ n_iter = gp_parameter_dic['n_iter']
 beta = gp_parameter_dic['beta']
 noise = gp_parameter_dic['noise']
 
+cmdline_paramfile_str = ''
+with open(template_cmdline_filename) as f:
+    cmdline_paramfile_str += f.read()
+
+with open(template_parameter_filename) as f:
+    cmdline_paramfile_str += f.read()
+
+template = Template(cmdline_paramfile_str)
+
 param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
+
+for param_name in param_names:
+    replaced = template.safe_substitute({param_name: "HOGEHOGE"})
+    if cmdline_paramfile_str == replaced:
+        param_names.remove(param_name)
+        print(
+            "%s exist in your param dir. But not exist in your cmdline or parameter file, so %s.csv is ignored" % param_name)
+
+    else:
+        print("%s is one hyper-paramter!" % param_name)
 
 gp_param2model_param_dic = {}
 
