@@ -93,7 +93,7 @@ class GPUCB(object):
                 ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1], self.z, alpha=0.3, color='b')
 
             ax.scatter([x[0] for x in self.X], [x[1] for x in self.X], self.T, c='r',
-                       marker='o', alpha=1.0)
+                       marker='o', alpha=0.5)
 
             ax.scatter(self.X[-1][0], self.X[-1][1], self.T[-1], c='m', s=50, marker='o', alpha=1.0)
 
