@@ -1,7 +1,11 @@
 # coding: utf-8
 import os
 
+import matplotlib
 import numpy as np
+
+matplotlib.use('Agg')
+
 from matplotlib import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.gaussian_process import GaussianProcessRegressor
