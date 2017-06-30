@@ -140,12 +140,14 @@ class Cmdline_Environment(BasicEnvironment):
         my_param_dic = {k: one_x for k, one_x in zip(self.param_names, list(x))}
         my_param_dic['model_number'] = "%04d" % model_number
 
+        # rewrite your_model_parameter.json below
         if self.template_paramter is not None:
             # self.conf = self.set_my_config(my_param_dic)
-            self.parameter_dic = json.loads(self.template_paramter.substitute(my_param_dic))
+            self.parameter_dic = json.loads(
+                self.template_paramter.substitute(my_param_dic))  ## TODO: should support yaml, etc
 
             if "pathname_dump" in self.parameter_dic.keys():
-                mkdir_if_not_exist(self.parameter_dic["pathname_dump"])  ## TODO: only for LDA ###
+                mkdir_if_not_exist(self.parameter_dic["pathname_dump"])  ## TODO: only for LDA
 
             conf_fn = os.path.join(self.output_dir, 'conf%04d.json' % model_number)
 
@@ -154,6 +156,7 @@ class Cmdline_Environment(BasicEnvironment):
 
             my_param_dic['param_file'] = conf_fn
 
+        # rewrite your cmdline below
         cmd = self.template_cmdline.substitute(my_param_dic)
 
         subprocess.call(cmd, shell=True)
