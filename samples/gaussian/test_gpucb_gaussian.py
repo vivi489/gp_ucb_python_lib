@@ -14,7 +14,7 @@ from gpucb import GPUCB
 ########################
 output_dir = 'output_gaussian'
 
-parameter_dir = os.path.join('param_files', 'gaussian')
+parameter_dir = os.path.join('param_dir', 'csv_files')
 result_filename = 'gaussian_result_2dim.csv'
 
 # reload = True
