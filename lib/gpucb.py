@@ -74,29 +74,51 @@ class GPUCB(object):
         self.T.append(t)
 
     def plot(self, output_dir):
+        def plot2d():
+            fig = plt.figure()
+            ax = Axes3D(fig)
 
-        if self.X_grid.shape[1] != 2:
-            print("OOPS! Plotting only supports X_grid that consisted of 2 dimentions.")
+            ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1],
+                              self.mu.reshape(self.meshgrid[0].shape), alpha=0.5, color='g')
+
+            ucb_score = self.mu + self.sigma * np.sqrt(self.beta)
+            ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1],
+                              ucb_score.reshape(self.meshgrid[0].shape), alpha=0.5, color='y')
+
+            if self.z is not None:
+                ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1], self.z, alpha=0.3, color='b')
+
+            ax.scatter([x[0] for x in self.X], [x[1] for x in self.X], self.T, c='r',
+                       marker='o', alpha=1.0)
+
+            ax.scatter(self.X[-1][0], self.X[-1][1], self.T[-1], c='m', s=50, marker='o', alpha=1.0)
+
+            out_fn = os.path.join(output_dir, 'res_%04d.png' % len(self.X))
+            mkdir_if_not_exist(output_dir)
+
+            plt.savefig(out_fn)
+            plt.close()
+
+        def plot1d():
+            ucb_score = self.mu + self.sigma * np.sqrt(self.beta)
+            plt.plot(self.meshgrid[0], ucb_score.reshape(self.meshgrid[0].shape))
+            plt.scatter(self.X, self.T, c='r', s=10, marker='o', alpha=1.0)
+            plt.scatter(self.X[-1], self.T[-1], c='m', s=50, marker='o', alpha=1.0)
+
+            out_fn = os.path.join(output_dir, 'res_%04d.png' % len(self.X))
+            mkdir_if_not_exist(output_dir)
+
+            plt.savefig(out_fn)
+            plt.close()
+
+        if self.X_grid.shape[1] == 2:
+            plot2d()
             return
 
-        fig = plt.figure()
-        ax = Axes3D(fig)
+        elif self.X_grid.shape[1] == 1:
+            plot1d()
+            return
 
-        ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1],
-                          self.mu.reshape(self.meshgrid[0].shape), alpha=0.5, color='g')
-
-        ucb_mesh = self.mu + self.sigma * np.sqrt(self.beta)
-        ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1],
-                          ucb_mesh.reshape(self.meshgrid[0].shape), alpha=0.5, color='y')
-
-        if self.z is not None:
-            ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1], self.z, alpha=0.3, color='b')
-
-        ax.scatter([x[0] for x in self.X], [x[1] for x in self.X], self.T, c='r',
-                   marker='o', alpha=1.0)
-
-        out_fn = os.path.join(output_dir, 'res_%04d.png' % len(self.X))
-        mkdir_if_not_exist(output_dir)
-
-        plt.savefig(out_fn)
-        plt.close()
+        else:
+            print("Sorry... Plotting only supports 1 dim or 2 dim.")
+            return
