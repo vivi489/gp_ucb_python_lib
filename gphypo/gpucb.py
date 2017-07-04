@@ -108,8 +108,9 @@ class GPUCB(object):
             plt.close()
 
         def plot1d():
+            plt.plot(self.meshgrid[0], self.mu.flatten(), color='g')
             ucb_score = self.mu + self.sigma * np.sqrt(self.beta)
-            plt.plot(self.meshgrid[0], ucb_score.reshape(self.meshgrid[0].shape))
+            plt.plot(self.meshgrid[0], ucb_score.reshape(self.meshgrid[0].shape), color='y')
 
             if self.gt_available:
                 plt.plot(self.meshgrid[0], self.z, alpha=0.3, color='b')
