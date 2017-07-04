@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from gphypo.env import GaussianEnvironment
 from gphypo.gpucb import GPUCB
-
+from gphypo.util import mkdir_if_not_exist
 # from tqdm import tqdm_notebook as tqdm
 
 
@@ -15,7 +15,7 @@ from gphypo.gpucb import GPUCB
 output_dir = 'output_gaussian'
 
 parameter_dir = os.path.join('param_dir', 'csv_files')
-result_filename = 'gaussian_result_2dim.csv'
+result_filename = os.path.join(output_dir, 'gaussian_result_2dim.csv')
 
 # reload = True
 reload = False
@@ -24,6 +24,7 @@ n_iter = 100
 beta = 36.
 ########################
 
+mkdir_if_not_exist(output_dir)
 
 param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
 
@@ -42,7 +43,7 @@ env = GaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, res
                           output_dir=output_dir,
                           reload=reload)
 
-agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=beta)
+agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=beta, gt_available=True)
 
 for i in tqdm(range(n_iter)):
     try:

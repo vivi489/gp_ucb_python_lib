@@ -38,9 +38,13 @@ class GPUCB(object):
 
         if self.X_grid.shape[1] == 2 and gt_available:
             nrow, ncol = self.meshgrid.shape[1:]
-            self.z = self.environment.sample(self.X_grid.T, get_ground_truth=True, idx=-1).reshape(nrow, ncol)
+            self.z = self.environment.sample(self.X_grid.T, get_ground_truth=True).reshape(nrow, ncol)
+        elif self.X_grid.shape[1] == 1 and gt_available:
+            self.z = self.environment.sample(self.X_grid.flatten(),
+                                             get_ground_truth=True)  # TODO: check if this works correctly
         else:
             self.z = None
+        self.gt_available = gt_available
 
         self.X = []
         self.T = []
@@ -89,7 +93,7 @@ class GPUCB(object):
             ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1],
                               ucb_score.reshape(self.meshgrid[0].shape), alpha=0.5, color='y')
 
-            if self.z is not None:
+            if self.gt_available:
                 ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1], self.z, alpha=0.3, color='b')
 
             ax.scatter([x[0] for x in self.X], [x[1] for x in self.X], self.T, c='r',
@@ -106,6 +110,10 @@ class GPUCB(object):
         def plot1d():
             ucb_score = self.mu + self.sigma * np.sqrt(self.beta)
             plt.plot(self.meshgrid[0], ucb_score.reshape(self.meshgrid[0].shape))
+
+            if self.gt_available:
+                plt.plot(self.meshgrid[0], self.z, alpha=0.3, color='b')
+
             plt.scatter(self.X, self.T, c='r', s=10, marker='o', alpha=1.0)
             plt.scatter(self.X[-1], self.T[-1], c='m', s=50, marker='o', alpha=1.0)
 

@@ -68,6 +68,11 @@ from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel as
 
 C(1, constant_value_bounds="fixed") * RBF(2, length_scale_bounds="fixed") + WhiteKernel(1e-1)
 ```
+
+- Yellow mesh means the UCB score.
+- Green mesh means the mean score.
+- Blue mesh means the ground-truth (gt) score.
+
  
 ### gaussian optimization
 ![sample](_static/gaussian_anim.gif)

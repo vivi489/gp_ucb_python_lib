@@ -66,7 +66,7 @@ class BasicEnvironment(object):
 
     def sample(self, x, get_ground_truth=False):
         if get_ground_truth:
-            result = self.run_model(0, )
+            result = self.run_model(-1, x)
             return result
 
         n_model = self.result_df.shape[0] + 1
