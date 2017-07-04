@@ -46,6 +46,15 @@ class GPUCB(object):
             self.z = None
         self.gt_available = gt_available
 
+        # Instanciate a Gaussian Process model
+        my_kernel = C(1, constant_value_bounds="fixed") * RBF(2,
+                                                              length_scale_bounds="fixed")  # works well, but not so sharp
+        #     my_kernel = Matern(nu=2.5) # good
+        if noise:
+            my_kernel += WhiteKernel(1e-1)
+
+        self.gp = GaussianProcessRegressor(kernel=my_kernel)
+
         self.X = []
         self.T = []
 
@@ -56,14 +65,9 @@ class GPUCB(object):
             self.X = [np.array(x) for x in X.tolist()]
             self.T = T.tolist()
 
-        # Instanciate a Gaussian Process model
-        my_kernel = C(1, constant_value_bounds="fixed") * RBF(2,
-                                                              length_scale_bounds="fixed")  # works well, but not so sharp
-        #     my_kernel = Matern(nu=2.5) # good
-        if noise:
-            my_kernel += WhiteKernel(1e-1)
-
-        self.gp = GaussianProcessRegressor(kernel=my_kernel)
+            self.gp.fit(self.X, self.T)
+            self.mu, self.sigma = self.gp.predict(self.X_grid, return_std=True)
+            print("Reloading model succeeded!")
 
     def argmax_ucb(self):
         ucb = np.argmax(self.mu + self.sigma * np.sqrt(self.beta))
