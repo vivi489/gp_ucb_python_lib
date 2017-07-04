@@ -1,11 +1,9 @@
 import os
-import sys
 
 import numpy as np
 import pandas as pd
 
-sys.path.append("../../../lib")
-from util import mkdir_if_not_exist
+from gphypo.util import mkdir_if_not_exist
 
 gp_param_dic = {
     "c": np.arange(-2, 5.01, 0.2),

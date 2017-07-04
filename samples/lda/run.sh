@@ -1,1 +1,1 @@
-time python ../../lib/run_cmdenv.py
+time python run.py

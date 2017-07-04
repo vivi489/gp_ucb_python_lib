@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from env import GaussianEnvironment
-from gpucb import GPUCB
+from gphypo.env import GaussianEnvironment
+from gphypo.gpucb import GPUCB
 
 # from tqdm import tqdm_notebook as tqdm
 

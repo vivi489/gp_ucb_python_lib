@@ -7,6 +7,5 @@
     "reload": false,
     "n_iter": 50,
     "beta": 16,
-    "noise": true,
-    "my_env_path": "/Users/ar-kohei.watanabe/Codes/gp_ucb_python_lib/samples/svm/env_svm.py"
+    "noise": true
 }

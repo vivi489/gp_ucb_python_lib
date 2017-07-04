@@ -7,6 +7,5 @@
     "reload": false,
     "n_iter": 100,
     "beta": 36,
-    "noise": true,
-    "my_env_path": "/Users/ar-kohei.watanabe/Codes/gp_ucb_python_lib/samples/lda/env_lda.py"
+    "noise": true
 }

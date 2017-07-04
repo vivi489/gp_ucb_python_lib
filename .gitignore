@@ -9,3 +9,7 @@ __pycache__
 *param*.csv
 *.png
 csv_files
+
+build
+dist
+*.egg-info

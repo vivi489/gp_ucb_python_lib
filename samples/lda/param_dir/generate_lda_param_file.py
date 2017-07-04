@@ -4,8 +4,8 @@ import sys
 import numpy as np
 import pandas as pd
 
-sys.path.append("../../../lib")
-from util import mkdir_if_not_exist
+sys.path.append("../../../gphypo")
+from gphypo.util import mkdir_if_not_exist
 
 gp_param_dic = {
     "alpha": np.arange(-2, 2.01, 0.2),

@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from util import mkdir_if_not_exist
+from gphypo.util import mkdir_if_not_exist
 
 gp_param_dic = {
     'x': np.arange(-5, 5, 0.5),
