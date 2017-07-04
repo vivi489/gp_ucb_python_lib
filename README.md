@@ -6,13 +6,13 @@
 
 ## Install
 ```
-python setup.py install
+python setup.py install --force
 ```
 
 
 ## Usage
 
-1. Copy the sample directory (ex. samples/svm). 
+1. Copy the sample directory (ex. samples/svm or samples/lda). 
 
 2. Edit 4 ~ 6 files in your copied directory. ("HOGE" should be set to your model name.)
 
