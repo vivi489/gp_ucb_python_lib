@@ -4,7 +4,6 @@ import sys
 import numpy as np
 import pandas as pd
 
-sys.path.append("../../../gphypo")
 from gphypo.util import mkdir_if_not_exist
 
 gp_param_dic = {
