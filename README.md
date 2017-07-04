@@ -1,4 +1,4 @@
-# Hyper-Prameter Optimization Library using GP-UCB
+# Hyper-Prameter Optimization Library using GP-UCB (gphypo)
 
 <!---
 [![Build Status](https://travis-ci.org/LittleWat/gp_ycb_python_lib.svg?branch=master)](https://travis-ci.org/LittleWat/gp_ycb_python_lib)
@@ -14,11 +14,11 @@ python setup.py install
 
 1. Copy the sample directory (ex. samples/svm). 
 
-2. Edit 5 or 6 files in your copied directory. ("HOGE" should be set to your model name.)
+2. Edit 4 ~ 6 files in your copied directory. ("HOGE" should be set to your model name.)
 
     1. param_dir/generate_HOGE_param_file.py (You don't necessarily use this script.)
     
-        This file generate hyper-paramteres. 
+        This file generate hyper-paramtere sets. 
         
     2. cmdline_HOGE.txt
     
@@ -26,9 +26,11 @@ python setup.py install
         
         If you need a config file that contains hyper-paramter to call your program, the config file sould be set "$param_file"
         
-    3. parameter_HOGE.json (This file is optional, but useful in "env_HOGE.py")
+    3. parameter_HOGE.json (Optional, but maybe useful to use in "get_result" function of "myenv.py")
     
         This file is used to kick your program. Also, you should set a paramter in order to get the result of your program (ex. "filename_result": "./libsvm/output/accuracy_$model_number.txt").
+        
+        "$model_number" is optional. If you would like to save your model every bandit process, you should use this.
         
     4. parameter_gp.json
     
@@ -54,18 +56,17 @@ python setup.py install
                 return res
         ```
 
-     6. run.sh
-        You have to call "lib/run_cmdenv.py".
+     6. run.sh (Optional)
+        You have to call "run.py" here.
         
 
 ## Demo
 GP kernel was set below
 
 ```python
- my_kernel = C(1, constant_value_bounds="fixed") * RBF(2,
-                                                      length_scale_bounds="fixed")  # works well, but not so sharp
-if noise:
-    my_kernel += WhiteKernel(1e-1)
+from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel as C
+
+C(1, constant_value_bounds="fixed") * RBF(2, length_scale_bounds="fixed") + WhiteKernel(1e-1)
 ```
  
 ### gaussian optimization
