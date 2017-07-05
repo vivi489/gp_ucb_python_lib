@@ -1,6 +1,7 @@
 from . import util
 from . import env
 from . import gpucb
+from . import egmrf_ucb
 from . import run_cmdenv
 
 

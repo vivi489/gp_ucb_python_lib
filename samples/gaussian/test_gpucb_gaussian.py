@@ -5,9 +5,11 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+# from gphypo.gpucb import GPUCB
+from gphypo.egmrf_ucb import EGMRF_UCB
 from gphypo.env import GaussianEnvironment
-from gphypo.gpucb import GPUCB
 from gphypo.util import mkdir_if_not_exist
+
 # from tqdm import tqdm_notebook as tqdm
 
 
@@ -21,7 +23,17 @@ result_filename = os.path.join(output_dir, 'gaussian_result_2dim.csv')
 reload = False
 n_iter = 100
 
-beta = 36.
+# beta = 36.
+ALPHA = 5
+# BETA = 0.001
+# BETA = 0.0001 # goodd
+BETA = 36
+
+GAMMA = 1000.
+GAMMA0 = 1.
+
+Y_GAMMA = 1500  # Larger than GAMMA
+
 ########################
 
 mkdir_if_not_exist(output_dir)
@@ -43,7 +55,9 @@ env = GaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, res
                           output_dir=output_dir,
                           reload=reload)
 
-agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=beta, gt_available=True)
+# agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=beta, gt_available=True)
+agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, Y_GAMMA=Y_GAMMA, ALPHA=ALPHA, BETA=BETA,
+                  gt_available=True)
 
 for i in tqdm(range(n_iter)):
     try:
