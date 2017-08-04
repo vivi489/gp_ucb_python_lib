@@ -4,7 +4,7 @@ import os
 import matplotlib
 import numpy as np
 
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 
 from matplotlib import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -12,10 +12,11 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel as C
 
 from .util import mkdir_if_not_exist
+from .helper import unique_rows
 
 
 class GPUCB(object):
-    def __init__(self, meshgrid, environment, beta=100., noise=True, gt_available=False):
+    def __init__(self, meshgrid, environment, beta=100., noise=True, gt_available=False, my_kernel=None, burnin=0):
         '''
         meshgrid: Output from np.methgrid.
         e.g. np.meshgrid(np.arange(-1, 1, 0.1), np.arange(-1, 1, 0.1)) for 2D space
@@ -46,14 +47,17 @@ class GPUCB(object):
             self.z = None
         self.gt_available = gt_available
 
-        # Instanciate a Gaussian Process model
-        my_kernel = C(1, constant_value_bounds="fixed") * RBF(2,
-                                                              length_scale_bounds="fixed")  # works well, but not so sharp
-        #     my_kernel = Matern(nu=2.5) # good
-        if noise:
-            my_kernel += WhiteKernel(1e-1)
+        if my_kernel is None:
+            # Instanciate a Gaussian Process model
+            my_kernel = C(1, constant_value_bounds="fixed") * RBF(2,
+                                                                  length_scale_bounds="fixed")  # works well, but not so sharp
+            #     my_kernel = Matern(nu=2.5) # good
+            if noise:
+                my_kernel += WhiteKernel(1e-1)
+        else:
+            my_kernel = my_kernel
 
-        self.gp = GaussianProcessRegressor(kernel=my_kernel)
+        self.gp = GaussianProcessRegressor(kernel=my_kernel, n_restarts_optimizer=25)
 
         self.X = []
         self.T = []
@@ -65,9 +69,24 @@ class GPUCB(object):
             self.X = [np.array(x) for x in X.tolist()]
             self.T = T.tolist()
 
-            self.gp.fit(self.X, self.T)
+            npX = np.array(self.X)
+            npT = np.array(self.T)
+
+            ur = unique_rows(npX)
+
+            self.gp.fit(npX[ur], npT[ur])
+
+            # self.gp.fit(self.X, self.T)
             self.mu, self.sigma = self.gp.predict(self.X_grid, return_std=True)
             print("Reloading model succeeded!")
+
+
+        if burnin > 0 and not environment.reload:
+            for _ in range(burnin):
+                n_points = self.X_grid.shape[0]
+                rand_idx = np.random.randint(n_points)
+                x = self.X_grid[rand_idx]
+                self.sample(x)
 
     def argmax_ucb(self):
         ucb = np.argmax(self.mu + self.sigma * np.sqrt(self.beta))
@@ -76,7 +95,15 @@ class GPUCB(object):
     def learn(self):
         grid_idx = self.argmax_ucb()
         self.sample(self.X_grid[grid_idx])
-        self.gp.fit(self.X, self.T)
+
+        npX = np.array(self.X)
+        npT = np.array(self.T)
+
+        ur = unique_rows(npX)
+
+        self.gp.fit(npX[ur], npT[ur])
+
+        # self.gp.fit(self.X, self.T)
 
         self.mu, self.sigma = self.gp.predict(self.X_grid, return_std=True)
 
@@ -113,8 +140,10 @@ class GPUCB(object):
 
         def plot1d():
             plt.plot(self.meshgrid[0], self.mu.flatten(), color='g')
-            ucb_score = self.mu + self.sigma * np.sqrt(self.beta)
+            ucb_score = self.mu.flatten() + self.sigma.flatten() * np.sqrt(self.beta)
             plt.plot(self.meshgrid[0], ucb_score.reshape(self.meshgrid[0].shape), color='y')
+
+            # plt.plot(self.meshgrid[0], ucb_score.flatten(), color='y')
 
             if self.gt_available:
                 plt.plot(self.meshgrid[0], self.z, alpha=0.3, color='b')
