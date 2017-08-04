@@ -3,6 +3,7 @@ output
 output_sample
 output_gaussian
 *result*.csv
+00param.txt
 .idea
 .ipynb_checkpoints
 __pycache__
@@ -13,3 +14,15 @@ csv_files
 build
 dist
 *.egg-info
+
+# Tex
+*.aux
+*.bbl
+*.blg
+*.dvi
+*.fdb_latexmk
+*.fls
+*log
+*.synctex.gz
+
+*.pdf
