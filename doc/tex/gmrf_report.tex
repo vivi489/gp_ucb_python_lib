@@ -1,0 +1,170 @@
+\documentclass[platex, a4paper]{jsarticle}
+\usepackage{commath}
+\usepackage[english]{babel} % English language/hyphenation
+\usepackage{amsmath, amssymb,amsfonts,amsthm,bm}
+
+\global\long\def\T#1{#1^{\top}}
+\begin{document}
+
+\title{Hyper-paramter Optimization \\ Using Gaussian Markov Random Field}
+\author{Bin Yang, Kohei Watanabe}
+\maketitle
+
+\section{algebra}
+
+\subsection{Continuous Value Reward Pattern}
+
+$\bm{y}$: the true values of node (hidden variable) \\
+$\bm{r}_i$: the reward list of $node_i$ \\
+$n_i$: the length of the reward list of $node_i$ \\
+$\gamma_i=\frac{1}{\sigma_i^2}$: $\sigma_i^2$ denotes the variance of observed value of $node_i$ \\
+$\gamma_0=\frac{1}{\sigma_0^2}$: $\sigma_0^2$ denotes the variance of prior value of $node_i$ \\
+$\alpha$: the mean of prior value of $node_i$ \\
+
+\begin{eqnarray}
+  P(\bm{r}) &:& const \\
+  P\left( \bm{y} |\bm{r}\right) &\propto&  P\left( \bm{r} ,\bm{y}\right) \\
+    &=& P\left( \bm{y} \right) P\left( \bm{r} |\bm{y}\right) \\
+    &=& P\left( \bm{y} \right) \prod_i P\left( \bm{r}_i |y_i \right) \\
+  P\left( y_{i} | \alpha, \gamma_0 \right) &=& C\exp \left( -\dfrac {\gamma_0} {2} \left( y_{i}-\alpha \right) ^{2}\right) \\
+  P(r_{i}^{j} | y_{i}, \gamma) &=& C\exp \left( -\dfrac {\gamma} {2}\left( r_{i}^{j}-y_{i}\right) ^{2}\right) \\
+  P\left( \bm{r}_i | y_i, \gamma \right) &=& C\exp \left( -\dfrac {\gamma} {2}\sum _{j}\left( {r_{i}^{j}}^2-2r_{i}^{j}y_{i}+y_{i}^{2}\right) \right) \\
+    &=& C'\exp \left( -\dfrac {1} {2}\gamma n_{i}\left( y_{i}-\dfrac {\sum _{j}r_{i}^{j}} {n_{i}}\right) ^{2}\right) \\
+  P\left( \bm{r}_i ,y_i | \alpha, \gamma_0, \gamma \right) &=& P\left( y_i | \alpha, \gamma_0 \right) P\left( \bm{r}_i | y_i, \gamma \right) \\
+    &=& C\exp \left( -\dfrac {1} {2} \gamma_0 \left( y_{i}-\alpha \right) ^{2}\right)
+    \exp \left( -\dfrac {1} {2}\gamma n_{i}\left( y_{i}-\dfrac {\sum _{j}r_{i}^{j}} {n_{i}}\right) ^{2}\right) \\
+    &=& C'\exp \left( - \dfrac {1} {2} \tilde{\gamma_i} \left( y_{i} - \tilde {\mu_i} \right) ^{2}  \right)
+\end{eqnarray}
+
+where
+\begin{eqnarray}
+  \tilde{\mu_i} &=& \dfrac {\gamma \sum _{j}r_{i}^{j}+\gamma_0\alpha _{0}} {\gamma n_{i}+\gamma _{0}} \\
+  \tilde{\gamma_i} &=& \gamma n_{i}+\gamma _{0}
+\end{eqnarray}
+$d$: the number of dimensions in paramter space \\
+$N$: the total number of parameter sets ($N=\prod_i^d L_i$: $L_i$ denotes the length of No.$i$ parameters) \\
+$I_{N}$ : n-dimension identiry matrix
+
+
+\begin{eqnarray}
+  A &=& \begin{pmatrix}
+  2d\gamma_y + \tilde{\gamma_1} & -\gamma_y   & \cdots & -\gamma_y   & \cdots &\\
+  -\gamma_y & 2d\gamma_y + \tilde{\gamma_2} &\cdots &  \cdots &  -\gamma_y  &  \\
+  \vdots&\vdots& \ddots &&& \\
+  -\gamma_y &\vdots&& \ddots &&& \\
+  &-\gamma_y&&& \ddots &&& \\
+  &&&&& 2d\gamma_y + \tilde{\gamma_N} \\
+  \end{pmatrix} \\
+  B &=& \tilde {\gamma_i} I_{N} \\
+    &=& \begin{pmatrix}
+      \tilde{\gamma_1} & 0 & \cdots & \mbox{\Huge O}\\
+      0 & \tilde{\gamma_2} & && \\
+      \vdots & & \ddots \\
+      \mbox{\Huge O}&&& \tilde{\gamma_N}
+  \end{pmatrix}
+\end{eqnarray}
+  %  \left(\bm{y} \\ \tilde{\bm{\mu}} \right)
+
+$\bm{A}=\T{\bm{D}} \bm{D}$, $\bm{z}=\bm{D}\bm{y}$
+
+\begin{eqnarray}
+  E(\bm{y})
+    &=& \dfrac {\gamma_y} {2} \sum_{i,j\in{J_i}} \left(y_i - y_j \right)^2
+      + \dfrac {\tilde{\gamma_i}} {2} \left( y_{i} - \tilde {\mu_i} \right) ^{2}\\
+  2E(\bm{y})
+    &=& \begin{pmatrix} \bm{y} ^\top  \tilde{\bm{\mu}}^\top \end{pmatrix}
+        \begin{pmatrix}
+            \bm{A} & -\bm{B} \\
+            -\bm{B} & \bm{B}
+        \end{pmatrix}
+        \begin{pmatrix}
+          \bm{y}  \\
+          \tilde{\bm{\mu}}
+        \end{pmatrix} \\
+    &=& \bm{y} ^\top \bm{A} \bm{y}  - 2 \tilde{\bm{\mu}} \bm{B} \bm{y}
+        + \tilde{\bm{\mu}}^\top \bm{B} \tilde{\bm{\mu}} \\
+    &=& \bm{y} ^\top \T{\bm{D}} \bm{D} \bm{y}  - 2 \tilde{\bm{\mu}} \bm{B} \bm{y}
+        + \tilde{\bm{\mu}}^\top \bm{B} \tilde{\bm{\mu}} \\
+    &=& \T{\bm{z}}\bm{z} - 2 \tilde{\bm{\mu}} \bm{B} \bm{D}^{-1}\bm{z}  + \tilde{\bm{\mu}}^\top \bm{B} \tilde{\bm{\mu}} \\
+    &=& (\T{\bm{z}} - \T{\tilde{\bm{\mu}}}\bm{B} \bm{D}^{-1}) (\bm{z} - {\bm{D}^{-1}}^\top \bm{B}   \tilde{\bm{\mu}})
+    + \tilde{\bm{\mu}}^\top \bm{B} \tilde{\bm{\mu}} - \T{\tilde{\bm{\mu}}}\bm{B} \bm{D}^{-1}
+    {\bm{D}^{-1}}^\top \bm{B} \tilde{\bm{\mu}} \\
+    &=& (\bm{y} ^\top \T{\bm{D}} - \T{\tilde{\bm{\mu}}}\bm{B} \bm{D}^{-1})(\bm{D}\bm{y}  - {\bm{D}^{-1}}^\top \bm{B} \tilde{\bm{\mu}}) + \tilde{\bm{\mu}}^\top (\bm{B} - \bm{B} \bm{A}^{-1} \bm{B} ) \tilde{\bm{\mu}} \\
+    &=&  (\T{\bm{y} } - \T{\tilde{\bm{\mu}}}\bm{B} \bm{D}^{-1} {\bm{D}^{\top}}^{-1}) \T{\bm{D}} \bm{D} (\bm{y}  - \bm{D}^{-1}{\bm{D}^{-1}}^\top \bm{B} \tilde{\bm{\mu}}) + \tilde{\bm{\mu}}^\top (\bm{B} - \bm{B} \bm{A}^{-1} \bm{B} ) \tilde{\bm{\mu}} \\
+    &=& (\T{\bm{y} } - \T{\tilde{\bm{\mu}}}\bm{B} \bm{A}^{-1}) \bm{A} (\bm{y}  - \bm{A}^{-1} \bm{B} \tilde{\bm{\mu}})
+    + \tilde{\bm{\mu}}^\top (\bm{B} - \bm{B} \bm{A}^{-1} \bm{B} ) \tilde{\bm{\mu}}
+\end{eqnarray}
+
+\begin{eqnarray}
+  \bm{y} &=& \T{\tilde{\bm{\mu}}}\bm{B} \bm{A}^{-1} \\
+  \bm{\Sigma_{\hat{y}}} &=& \bm{A}^{-1}
+\end{eqnarray}
+
+\begin{eqnarray}
+  P( \bm{r} | \gamma, \gamma_y, \gamma_0, \alpha) &=& \int d\bm{y}  P( \bm{r} | \bm{y} , \gamma, \gamma_y, \gamma_0, \alpha) P(\bm{y} ) \\
+  &=&  \int d\bm{y}  \exp\left(- E(\bm{y} ) \right) \\
+  &\propto& |\Lambda|^{\frac{1}{2}}  \exp\left( - \frac{1}{2} \tilde{\bm{\mu}}^\top \Lambda \tilde{\bm{\mu}}\right)
+\end{eqnarray}
+
+\begin{eqnarray}
+  \Lambda &=& \bm{B} - \bm{B} \bm{A}^{-1} \bm{B}\\
+           &=& \gamma \bm{A}_2 - \gamma^2 \bm{A}_2 (\gamma_y \bm{A}_1 + \gamma \bm{A}_2) \bm{A}_2
+\end{eqnarray}
+
+In order to simplify the problem,
+we assume $\gamma_0=0$, then $\tilde{\bm{\mu}_i} = \dfrac {\sum _{j}r_{i}^{j}} {n_{i}}$ becomes $const$.
+
+\begin{eqnarray}
+  \bm{A}_1 &=&
+    \begin{pmatrix}
+      2d & -1 & \cdots & -1 & \cdots &\\
+      -1 & 2d &\cdots &  \cdots &  -1  &  \\
+      \vdots&\vdots& \ddots &&& \\
+      -1 &\vdots&& \ddots &&& \\
+      & -1 &&& \ddots &&& \\
+      &&&&& 2d \\
+    \end{pmatrix} \\
+  \bm{A}_2  &=&
+    \begin{pmatrix}
+      n_1 & 0 & \cdots & \mbox{\Huge O}\\
+      0 & n_2 & && \\
+      \vdots & & \ddots \\
+      \mbox{\Huge O}&&& n_N
+    \end{pmatrix}
+\end{eqnarray}
+
+\begin{eqnarray}
+  A &=& \gamma_y \bm{A}_1 + \gamma \bm{A}_2 \\
+  \Lambda &=& \bm{B} - \bm{B} \bm{A}^{-1} \bm{B}\\
+           &=& \gamma \bm{A}_2 - \gamma^2 \bm{A}_2 (\gamma_y \bm{A}_1 + \gamma \bm{A}_2) \bm{A}_2 \\
+  \frac{\partial \Lambda}{\partial \gamma_y} &=& - \gamma^2 \frac{\partial}{\partial \gamma_y}
+    \left(\bm{A}_2 \bm{A}^{-1} \bm{A}_2  \right) \\
+    &=& 2 \gamma^2  \left(\bm{A}_2 \bm{A}^{-1} \bm{A}_1 \bm{A}^{-1} \bm{A}_2  \right)
+\end{eqnarray}
+
+\begin{eqnarray}
+  \log P( \bm{r}, \gamma_y | \gamma, \gamma_0, \alpha)
+      &\propto& \log P( \bm{r} | \gamma, \gamma_y, \gamma_0, \alpha)P(\gamma_y) \\
+      &=& \log P( \bm{r} | \gamma, \gamma_y, \gamma_0, \alpha) + \log P(\gamma_y) \\
+      &=& \frac{1}{2} \log|\Lambda| - \frac{1}{2} \tilde{\bm{\mu}}^\top \Lambda \tilde{\bm{\mu}}
+        + \log \gamma_y^{k-1} \frac{e^{-\gamma_y/\theta}}{\Gamma(k) \theta^k} \\
+      &=& \frac{1}{2} \log|\Lambda| - \frac{1}{2} \tilde{\bm{\mu}}^\top \Lambda \tilde{\bm{\mu}}
+        + (k-1)\log \gamma_y -  \frac{\gamma_y}{\theta} + C \\
+  \frac{\partial \log P( \bm{r}, \gamma_y | \bm{y}, \gamma, \gamma_0, \alpha)}{\partial \gamma_y}
+      &=& \frac{1}{2} \mathrm{Tr}( \Lambda^{-1} \frac{\partial \Lambda}{\partial \gamma_y})
+        + \gamma^2   \tilde{\bm{\mu}}^\top \left(\bm{A}_2 \bm{A}^{-1} \bm{A}_1 \bm{A}^{-1} \bm{A}_2  \right)  \tilde{\bm{\mu}}
+        + \frac{k-1}{\gamma_y} - \frac{1}{\theta} \\
+      &=& \gamma^2 \mathrm{Tr}( \Lambda^{-1} \bm{A}_2 \bm{A}^{-1} \bm{A}_1 \bm{A}^{-1} \bm{A}_2)
+        + \gamma^2  \tilde{\bm{\mu}}^\top \left(\bm{A}_2 \bm{A}^{-1} \bm{A}_1 \bm{A}^{-1} \bm{A}_2  \right)  \tilde{\bm{\mu}}
+        + \frac{k-1}{\gamma_y} - \frac{1}{\theta} \\
+\end{eqnarray}
+
+\subsection{Binary Value Reward Pattern}
+
+
+
+
+
+
+
+\end{document}
