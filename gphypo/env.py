@@ -89,34 +89,6 @@ class BasicEnvironment(object):
         return result
 
 
-class GaussianEnvironment(BasicEnvironment):
-    def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
-        super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
-
-    def run_model(self, model_number, x):
-
-        mean1 = [3, 3]
-        cov1 = [[2, 0], [0, 2]]
-
-        mean2 = [-2, -2]
-        cov2 = [[1, 0], [0, 1]]
-
-        mean3 = [3, -3]
-        cov3 = [[0.6, 0], [0, 0.6]]
-
-        if x.ndim == 1:
-            pass
-        elif x.ndim == 2:
-            x = x.T
-        else:
-            return "OOPS"
-
-        y = multivariate_normal.pdf(x, mean=mean1, cov=cov1) + multivariate_normal.pdf(x, mean=mean2, cov=cov2) \
-            + multivariate_normal.pdf(x, mean=mean3, cov=cov3)
-
-        return y
-
-
 class Cmdline_Environment(BasicEnvironment):
     def __init__(self, gp_param2model_param_dic, template_cmdline_filename, template_paramter_filename=None,
                  result_filename='result.csv',
