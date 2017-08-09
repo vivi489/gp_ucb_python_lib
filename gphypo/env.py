@@ -7,7 +7,6 @@ from string import Template
 
 import numpy as np
 import pandas as pd
-from scipy.stats import multivariate_normal
 
 from .util import mkdir_if_not_exist
 
@@ -47,6 +46,11 @@ class BasicEnvironment(object):
         self.output_dir = output_dir
 
     def preprocess_x(self, x):
+        '''
+        Transform hyperparameter values (e.g. x -> log(x)
+        :param x: Original hyperparameter values
+        :return: Transformed hyperparameter values
+        '''
         x = np.array(x)
 
         assert x.ndim == 1
@@ -61,12 +65,12 @@ class BasicEnvironment(object):
         return res
 
     @abstractmethod
-    def run_model(self, n_model, x):
+    def run_model(self, n_model, x, calc_gt=False, n_exp=1):
         pass
 
-    def sample(self, x, get_ground_truth=False):
+    def sample(self, x, get_ground_truth=False, n_exp=1):
         if get_ground_truth:
-            result = self.run_model(-1, x)
+            result = self.run_model(-1, x, True)
             return result
 
         n_model = self.result_df.shape[0] + 1
@@ -77,7 +81,7 @@ class BasicEnvironment(object):
         pair_msg = ', '.join(['{}: {}'.format(k, v) for k, v in zip(self.param_names, processed_x)])
         print(prefix_msg + pair_msg)
 
-        result = self.run_model(n_model, processed_x)
+        result = self.run_model(n_model, processed_x, n_exp=n_exp)
 
         self.result_df.loc[len(self.result_df)] = list(x) + list(processed_x) + [result]
 

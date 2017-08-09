@@ -6,10 +6,10 @@ import pandas as pd
 from gphypo.util import mkdir_if_not_exist
 
 gp_param_dic = {
-    'x': np.arange(-5, 5, 0.5),
-    'y': np.arange(-5, 5, 0.5),
-    'z': np.arange(-5, 5, 0.5),
-    'w': np.arange(-5, 5, 0.5)
+    'x': np.arange(-3, 4, 1),
+    'y': np.arange(-3, 4, 1),
+    'z': np.arange(-3, 4, 1),
+    'w': np.arange(-3, 4, 1)
 
 }
 

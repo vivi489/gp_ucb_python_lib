@@ -3,10 +3,12 @@ import os
 
 import numpy as np
 import pandas as pd
+from scipy.stats import multivariate_normal
 
-from gphypo.egmrf_ucb import EGMRF_UCB
+from gphypo.egmrf_ucb import EGMRF_UCB, create_normalized_X_grid
 # from gphypo.egmrf_ucb import EGMRF_UCB
 from gphypo.env import BasicEnvironment
+from gphypo.normalization import zero_mean_unit_var_normalization
 from gphypo.util import mkdir_if_not_exist, plot_loss
 
 
@@ -16,7 +18,7 @@ class GaussianEnvironment(BasicEnvironment):
     def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
         super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
 
-    def run_model(self, model_number, x):
+    def run_model(self, model_number, x, calc_gt=False, n_exp=1):
 
         mean1 = [3, 3]
         cov1 = [[2, 0], [0, 2]]
@@ -65,7 +67,7 @@ GAMMA_Y = 5 / ((STD * ndim) ** 2)  # weight of adjacent
 # GAMMA = 5 * GAMMA_Y
 GAMMA = (2 * ndim) * GAMMA_Y
 GAMMA0 = 0.01 * GAMMA
-IS_EDGE_NORMALIZED = True
+IS_EDGE_NORMALIZED = False
 
 # kernel = Matern(2.5)
 
@@ -74,6 +76,8 @@ UPDATE_HYPERPARAM = False
 UPDATE_ONLY_GAMMA_Y = True
 INITIAL_K = 10
 INITIAL_THETA = 10
+
+PAIRWISE_SAMPLING = True
 
 output_dir = 'output'
 parameter_dir = os.path.join('param_dir', 'csv_files')
@@ -108,32 +112,69 @@ for param_name in param_names:
 
     gp_param2model_param_dic[param_name] = param_df.to_dict()['gp_' + param_name]
 
-env = GaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
-                          output_dir=output_dir,
-                          reload=reload)
 
-# agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=BETA, gt_available=True, my_kernel=kernel)
-agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
-                  is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
-                  burnin=BURNIN,
-                  normalize_output=NORMALIZE_OUTPUT, update_hyperparam=UPDATE_HYPERPARAM,
-                  update_only_gamma_y=UPDATE_ONLY_GAMMA_Y,
-                  initial_k=INITIAL_K, initial_theta=INITIAL_THETA)
+def main():
+    env = GaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
+                              output_dir=output_dir,
+                              reload=reload)
 
-# for i in tqdm(range(n_iter)):
-for i in range(n_iter):
-    try:
-        flg = agent.learn()
-        agent.plot(output_dir=output_dir)
+    # agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=BETA, gt_available=True, my_kernel=kernel)
+    agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
+                      is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
+                      burnin=BURNIN,
+                      normalize_output=NORMALIZE_OUTPUT, update_hyperparam=UPDATE_HYPERPARAM,
+                      update_only_gamma_y=UPDATE_ONLY_GAMMA_Y,
+                      initial_k=INITIAL_K, initial_theta=INITIAL_THETA, pairwise_sampling=PAIRWISE_SAMPLING)
 
-        if flg == False:
-            print("Early Stopping!!!")
-            print(agent.bestX)
-            print(agent.bestT)
+    # for i in tqdm(range(n_iter)):
+    for i in range(n_iter):
+        try:
+            flg = agent.learn()
+            agent.plot(output_dir=output_dir)
+
+            if flg == False:
+                print("Early Stopping!!!")
+                print(agent.bestX)
+                print(agent.bestT)
+                break
+
+        except KeyboardInterrupt:
+            print("Learnig process was forced to stop!")
             break
 
-    except KeyboardInterrupt:
-        print("Learnig process was forced to stop!")
-        break
+    plot_loss(agent.Treal, 'reward.png')
 
-plot_loss(agent.Treal, 'reward.png')
+def calc_real_gamma_y():
+    env = GaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
+                         output_dir=output_dir,
+                         reload=reload)
+
+    meshgrid = np.array(np.meshgrid(*gp_param_list))
+    X_grid = meshgrid.reshape(meshgrid.shape[0], -1).T
+    normalized_X_grid = create_normalized_X_grid(meshgrid)
+
+
+    x_list = list(gp_param2model_param_dic['x'].values())
+    y_list = env.run_model(-1, x_list)
+    y_list, y_mean, y_std = zero_mean_unit_var_normalization(y_list)
+    adj_diff = (y_list[1:] - y_list[:-1]) ** 2
+    real_var = adj_diff.sum() / (len(adj_diff))
+    real_gamma_y = 1 / real_var
+    print('real gamma_y is %s' % real_gamma_y)
+
+    n_skip = 10
+    x_even_list = x_list[::n_skip]
+    y_even_list = env.run_model(-1, x_even_list)
+    adj_even_diff = (y_even_list[1:] - y_even_list[:-1]) ** 2
+    real_even_var = adj_even_diff.sum() / (len(adj_even_diff))
+    real_even_gamma_y = 1 / real_even_var
+    pred_gamma_y = n_skip**2 * real_even_gamma_y
+    print('pred gamma_y is %s' % pred_gamma_y)
+
+    print(len(adj_diff), len(adj_even_diff))
+
+
+if __name__ == '__main__':
+    # calc_real_gamma_y()
+    main()
+

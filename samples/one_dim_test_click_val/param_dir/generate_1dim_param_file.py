@@ -6,17 +6,13 @@ import pandas as pd
 from gphypo.util import mkdir_if_not_exist
 
 gp_param_dic = {
-    'x': np.arange(-5, 5, 1),
-    'y': np.arange(-5, 5, 1),
-    'z': np.arange(-5, 5, 1)
-
+    'x': np.arange(40*np.pi, 45*np.pi, 0.10)
 }
 
 gp_param2gaussian_param = {
-    "x": lambda x: x,
-    "y": lambda x: x,
-    "z": lambda x: x
+    "x": lambda x: x
 }
+
 output_dir = 'csv_files'
 mkdir_if_not_exist(output_dir)
 

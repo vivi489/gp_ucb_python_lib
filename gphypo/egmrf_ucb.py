@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import random
 import warnings
 from operator import itemgetter
 
@@ -10,13 +11,21 @@ from scipy.optimize import fmin_l_bfgs_b
 from scipy.spatial.distance import pdist, squareform
 
 from gphypo import normalization
+from gphypo.transform_val import transform_click_val2real_val
 from .util import mkdir_if_not_exist
 
-'''
-TODO
-- change to be robust to scailing (more than 4 dimensions)
-    - Not to use scipy.spatial.distance.pdist
-'''
+
+def adj_metric(u, v):
+    '''
+    give this function to scipy.spatial.distance.dist
+    :param u:
+    :param v:
+    :return: 1 if (u, v) is adj else 0
+    '''
+    if np.abs(u - v).sum() == 1:
+        return 1
+    else:
+        return 0
 
 
 def create_normalized_X_grid(meshgrid):
@@ -34,7 +43,8 @@ def create_normalized_X_grid(meshgrid):
 
 def create_adjacent_matrix(meshgrid):
     normalized_X_grid = create_normalized_X_grid(meshgrid)
-    dist = pdist(normalized_X_grid, metric='sqeuclidean')
+    # dist = pdist(normalized_X_grid, metric='sqeuclidean')  ## TODO
+    dist = pdist(normalized_X_grid, metric=adj_metric)  ## TODO
     tau0 = np.zeros_like(dist)
 
     tau0[dist == 1 ** 2] = -1
@@ -46,7 +56,7 @@ class EGMRF_UCB(object):
     def __init__(self, meshgrid, environment, GAMMA=0.01, GAMMA0=0.01, GAMMA_Y=0.01, ALPHA=0.1, BETA=16,
                  burnin=0, is_edge_normalized=False, noise=True, n_early_stopping=20,
                  gt_available=False, normalize_output=False, optimizer="fmin_l_bfgs_b", update_hyperparam=False,
-                 update_only_gamma_y=False, initial_k=1, initial_theta=2):
+                 update_only_gamma_y=False, initial_k=1, initial_theta=1, pairwise_sampling=False):
         '''
         meshgrid: Output from np.methgrid.
         e.g. np.meshgrid(np.arange(-1, 1, 0.1), np.arange(-1, 1, 0.1)) for 2D space
@@ -101,6 +111,10 @@ class EGMRF_UCB(object):
         self.cnt_since_bestT = 0
         self.n_early_stopping = n_early_stopping
 
+        self.pairwise_sampling = pairwise_sampling
+        if pairwise_sampling:
+            self.paiwise_var_list = np.array([])
+
         if burnin > 0 and not environment.reload:
             for _ in range(burnin):
                 n_points = self.X_grid.shape[0]
@@ -140,11 +154,15 @@ class EGMRF_UCB(object):
         self.diff_list = row_sum_list.max() - row_sum_list
 
         if is_edge_normalized:
-            weight_arr = (- self.ndim * 2) / row_sum_list
+            weight_arr = self.ndim * 2 / row_sum_list
+            print(weight_arr)
             tau0 *= weight_arr
             tau0 *= weight_arr.flatten()
 
         self.baseTau0 = tau0
+
+        # print (self.baseTau0)
+        # print (self.baseTau0.sum(axis=1))
         self.tau0 = self.baseTau0 * GAMMA_Y
         self.update()
 
@@ -174,7 +192,7 @@ class EGMRF_UCB(object):
         r_grid = self.get_r_grid()
         n_grid = np.array([len(r) for r in r_grid])
 
-        gamma_tilda = n_grid * gamma + gamma0  # Normal
+        # gamma_tilda = n_grid * gamma + gamma0  # Normal
         gamma_tilda = n_grid * gamma + gamma0 + gamma_y * self.diff_list.flatten()  # corner will be treated as center nodes
 
         mu_tilda = np.array([r.sum() * gamma + self.ALPHA * gamma0 for r in r_grid]) / gamma_tilda
@@ -242,11 +260,68 @@ class EGMRF_UCB(object):
 
     def learn(self):
         grid_idx = self.argmax_ucb()
-        continue_flg = self.sample(self.X_grid[grid_idx])
+        obserbed_val = self.sample(self.X_grid[grid_idx])
+        if obserbed_val is None:
+            return False
+
+        if self.pairwise_sampling:
+            adj_idxes = np.where(self.baseTau0[grid_idx] != 0)[0]
+            adj_idx = random.choice(adj_idxes)
+            obserbed_val2 = self.sample(self.X_grid[adj_idx])
+            if obserbed_val2 is None:
+                return False
+            self.paiwise_var_list = np.append(self.paiwise_var_list, (obserbed_val2 - obserbed_val) ** 2)
+
+        if len(self.X) > 200:  # TODO Hard coding
+            self.update_only_gamma_y = False
+            self.pairwise_sampling = False
+
+        self.update()
+        return True
+
+    def learn_from_click(self, n_exp=10):
+        grid_idx = self.argmax_ucb()
+        continue_flg = self.sample_from_click(self.X_grid[grid_idx], n_exp)
         if not continue_flg:
             return False
 
         self.update()
+        return True
+
+    def sample_from_click(self, x, n_exp):
+        n1 = self.environment.sample(x, n_exp=n_exp)
+        n0 = n_exp - n1
+        t = transform_click_val2real_val(n0, n1)
+
+        # TODO change the structure self.X and self.Treal (should not use list)
+        for _ in range(n_exp):
+            self.X.append(x)
+            self.Treal = np.append(self.Treal, t)
+
+        if len(self.Treal) == 1:
+            self.T = np.zeros(1)
+            self.t_mean = 0
+            self.t_std = 1
+
+        else:
+            if self.normalize_output:
+                # Normalize output to have zero mean and unit standard deviation
+                self.T, self.t_mean, self.t_std = normalization.zero_mean_unit_var_normalization(self.Treal)
+                # self.T, self.t_mean, self.t_std = normalization.zero_one_normalization(self.Treal)
+
+            else:
+                self.T = np.copy(self.Treal)
+
+        if t <= self.bestT:
+            self.cnt_since_bestT += 1
+        else:
+            self.bestT = t
+            self.bestX = x
+            self.cnt_since_bestT = 0
+
+        if self.cnt_since_bestT > self.n_early_stopping:
+            return False
+
         return True
 
     def sample(self, x):
@@ -277,11 +352,29 @@ class EGMRF_UCB(object):
             self.cnt_since_bestT = 0
 
         if self.cnt_since_bestT > self.n_early_stopping:
-            return False
+            return None
 
-        return True
+        return self.T[-1]
+
+    def update_hyper_params_by_pairwise_sampling(self):
+        var = self.paiwise_var_list.sum() / len(self.paiwise_var_list)
+
+        self.GAMMA_Y = 1 / var / self.ndim
+        # self.GAMMA_Y = 1 / var
+
+
+        # self.GAMMA_Y = 1 / var
+        print("New GammaY: %s" % self.GAMMA_Y)
+        self.GAMMA = self.GAMMA_Y * 2 * self.ndim
+        print("New Gamma: %s" % self.GAMMA)
+        self.GAMMA0 = self.GAMMA * 0.01
 
     def update_gammaY(self):
+
+        if self.pairwise_sampling:
+            self.update_hyper_params_by_pairwise_sampling()
+            return
+
         r_grid = self.get_r_grid()
 
         mean_grid = np.array([r_list.mean() for r_list in r_grid])
@@ -295,7 +388,8 @@ class EGMRF_UCB(object):
 
         new_X_grid = np.concatenate([self.normalized_X_grid[obserbed_idxes], self.normalized_X_grid[unobserbed_idxes]],
                                     axis=0)
-        dist = pdist(new_X_grid, metric='sqeuclidean')  # TODO heavy calculation
+        # dist = pdist(new_X_grid, metric='sqeuclidean')  # TODO heavy calculation
+        dist = pdist(new_X_grid, metric=adj_metric)
 
         A = np.zeros_like(dist)
         A[dist == 1 ** 2] = -1
@@ -309,16 +403,18 @@ class EGMRF_UCB(object):
 
         Lambda = A00 - (A01.T).dot(np.linalg.inv(A11).dot(A01))
 
+        print(Lambda.shape, A.shape)
+
         t = y_hat.dot(Lambda.dot(y_hat[:, np.newaxis]))[0] / 2
 
         self.k += 1 / 2
         self.theta = self.theta / (t * self.theta + 1)
-        self.GAMMA_Y = self.k * self.theta
-
-        print('k: %s, theta: %s' % (self.k, self.theta))
+        self.GAMMA_Y = (self.k - 1) * self.theta
         print("New GammaY: %s" % self.GAMMA_Y)
+        print("t: %s" % t)
+        print('k: %s, theta: %s' % (self.k, self.theta))
 
-        log_likelihood = (y_hat.dot(Lambda.dot(y_hat[:, np.newaxis])) - np.log(np.linalg.det(Lambda) + 0.01))[0]
+        log_likelihood = (y_hat.dot(Lambda.dot(y_hat[:, np.newaxis])) - np.log(np.linalg.det(Lambda) + 0.00001))[0]
         print('log_likelihood: %s' % log_likelihood)
 
     def log_marginal_likelihood(self, theta=None, eval_gradient=False):
@@ -418,29 +514,32 @@ class EGMRF_UCB(object):
         def plot2d():
             fig = plt.figure()
             ax = Axes3D(fig)
-
+            ucb_score = self.mu + self.sigma * np.sqrt(self.BETA)
             if self.normalize_output:
                 unnormalized_mu = normalization.zero_mean_unit_var_unnormalization(self.mu.flatten(), self.t_mean,
                                                                                    self.t_std)
                 ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1],
                                   unnormalized_mu.reshape(self.meshgrid[0].shape), alpha=0.5, color='g')
+
+                ucb_score = normalization.zero_mean_unit_var_unnormalization(ucb_score, self.t_mean, self.t_std)
+
             else:
                 ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1],
                                   self.mu.reshape(self.meshgrid[0].shape), alpha=0.5, color='g')
 
-            ucb_score = self.mu + self.sigma * np.sqrt(self.BETA)
-
-            if self.normalize_output:
-                ucb_score = normalization.zero_mean_unit_var_unnormalization(ucb_score, self.t_mean, self.t_std)
-
-                ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1],
-                                  ucb_score.reshape(self.meshgrid[0].shape), alpha=0.5, color='y')
+            ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1],
+                              ucb_score.reshape(self.meshgrid[0].shape), alpha=0.5, color='y')
 
             if self.gt_available:
                 ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1], self.z, alpha=0.3, color='b')
 
             ax.scatter([x[0] for x in self.X], [x[1] for x in self.X], self.Treal, c='r', marker='o', alpha=0.5)
-            ax.scatter(self.X[-1][0], self.X[-1][1], self.Treal[-1], c='m', s=50, marker='o', alpha=1.0)
+
+            if self.pairwise_sampling:
+                ax.scatter(self.X[-1][0], self.X[-1][1], self.Treal[-1], c='m', s=100, marker='o', alpha=1.0)
+                ax.scatter(self.X[-2][0], self.X[-2][1], self.Treal[-2], c='m', s=50, marker='o', alpha=1.0)
+            else:
+                ax.scatter(self.X[-1][0], self.X[-1][1], self.Treal[-1], c='m', s=50, marker='o', alpha=1.0)
 
             out_fn = os.path.join(output_dir, 'res_%04d.png' % len(self.X))
             mkdir_if_not_exist(output_dir)
@@ -450,16 +549,16 @@ class EGMRF_UCB(object):
 
         def plot1d():
 
+            ucb_score = self.mu + self.sigma * np.sqrt(self.BETA)
+
             if self.normalize_output:
                 unnormalized_mu = normalization.zero_mean_unit_var_unnormalization(self.mu.flatten(), self.t_mean,
                                                                                    self.t_std)
                 plt.plot(self.meshgrid[0], unnormalized_mu, color='g')
+
+                ucb_score = normalization.zero_mean_unit_var_unnormalization(ucb_score, self.t_mean, self.t_std)
             else:
                 plt.plot(self.meshgrid[0], self.mu.flatten(), color='g')
-
-            ucb_score = self.mu + self.sigma * np.sqrt(self.BETA)
-            if self.normalize_output:
-                ucb_score = normalization.zero_mean_unit_var_unnormalization(ucb_score, self.t_mean, self.t_std)
 
             plt.plot(self.meshgrid[0], ucb_score.reshape(self.meshgrid[0].shape), color='y')
 
@@ -467,7 +566,12 @@ class EGMRF_UCB(object):
                 plt.plot(self.meshgrid[0], self.z, alpha=0.3, color='b')
 
             plt.scatter(self.X, self.Treal, c='r', s=10, marker='o', alpha=1.0)
-            plt.scatter(self.X[-1], self.Treal[-1], c='m', s=50, marker='o', alpha=1.0)
+
+            if self.pairwise_sampling:
+                plt.scatter(self.X[-2], self.Treal[-2], c='m', s=100, marker='o', alpha=1.0)
+                plt.scatter(self.X[-1], self.Treal[-1], c='m', s=50, marker='o', alpha=1.0)
+            else:
+                plt.scatter(self.X[-1], self.Treal[-1], c='m', s=50, marker='o', alpha=1.0)
 
             out_fn = os.path.join(output_dir, 'res_%04d.png' % len(self.X))
             mkdir_if_not_exist(output_dir)
