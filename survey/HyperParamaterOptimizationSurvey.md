@@ -34,6 +34,10 @@
     - Created "Spearmint" library
     - [Japanese slide](https://www.slideshare.net/utotch/practical-bayesian-optimization-of-machine-learning-algorithmsnips2012-24645254)
 
+- [Bayesian Optimization with Robust Bayesian Neural Networks (NIPS 2016)](http://papers.nips.cc/paper/6117-bayesian-optimization-with-robust-bayesian-neural-networks.pdf)
+    - [Presentation Movie](https://www.youtube.com/watch?v=F69q2ogaoBo)
+    - Code is in RoBo library (Bohamiann)
+    
 
 - [Hyperband: A Novel Bandit-Based Approach to Hyperparameter Optimization (ICLR2017)](https://openreview.net/pdf?id=ry18Ww5ee)
     - [Website](https://people.eecs.berkeley.edu/~kjamieson/hyperband.html)
