@@ -2,12 +2,15 @@
 import os
 import random
 import warnings
+from itertools import combinations
 from operator import itemgetter
 
 import numpy as np
+import scipy
 from matplotlib import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.optimize import fmin_l_bfgs_b
+from scipy.sparse import coo_matrix
 from scipy.spatial.distance import pdist, squareform
 
 from gphypo import normalization
@@ -28,6 +31,10 @@ def adj_metric(u, v):
         return 0
 
 
+def mat_flatten(x):
+    return np.array(x).flatten()
+
+
 def create_normalized_X_grid(meshgrid):
     def create_normalized_meshgrid(meshgrid):
         mesh_shape = meshgrid[0].shape
@@ -43,12 +50,20 @@ def create_normalized_X_grid(meshgrid):
 
 def create_adjacent_matrix(meshgrid):
     normalized_X_grid = create_normalized_X_grid(meshgrid)
-    # dist = pdist(normalized_X_grid, metric='sqeuclidean')  ## TODO
     dist = pdist(normalized_X_grid, metric=adj_metric)  ## TODO
     tau0 = np.zeros_like(dist)
 
     tau0[dist == 1 ** 2] = -1
-    tau0 = squareform(tau0)
+    # tau0 = squareform(tau0) ## Memory Consuming
+
+    n_x = normalized_X_grid.shape[0]
+    edge_idxes = np.where(dist == 1)[0]
+    edge_coordinates = np.array(list(combinations(range(n_x), 2)))[edge_idxes]
+
+    data = - np.ones(edge_coordinates.shape[0])
+    tau0 = scipy.sparse.csc_matrix((data, (edge_coordinates[:, 0], edge_coordinates[:, 1])), shape=(n_x, n_x))
+    tau0 += scipy.sparse.csc_matrix((data, (edge_coordinates[:, 1], edge_coordinates[:, 0])), shape=(n_x, n_x))
+
     return tau0
 
 
@@ -146,24 +161,23 @@ class EGMRF_UCB(object):
 
         tau0 = create_adjacent_matrix(self.meshgrid)
 
-        edge_idxes = np.count_nonzero(tau0, axis=1) < self.ndim * 2
-        print('edge num is ' + str(edge_idxes.sum()))
+        # edge_idxes = np.count_nonzero(tau0, axis=1) < self.ndim * 2
+        # print('edge num is ' + str(edge_idxes.sum()))
 
-        cnt_tau0 = (-1) * tau0
-        row_sum_list = cnt_tau0.sum(axis=1, keepdims=True)
+        # row_sum_list = -tau0.sum(axis=1, keepdims=True)
+        row_sum_list = - mat_flatten(tau0.sum(axis=0))
         self.diff_list = row_sum_list.max() - row_sum_list
 
+        # TODO this normalization should be reconsidered
         if is_edge_normalized:
             weight_arr = self.ndim * 2 / row_sum_list
             print(weight_arr)
+
+            tau0 *= weight_arr[:, np.newaxis]
             tau0 *= weight_arr
-            tau0 *= weight_arr.flatten()
 
         self.baseTau0 = tau0
-
-        # print (self.baseTau0)
-        # print (self.baseTau0.sum(axis=1))
-        self.tau0 = self.baseTau0 * GAMMA_Y
+        # print (tau0.toarray())
         self.update()
 
     def calc_true_mean_std(self):
@@ -197,18 +211,24 @@ class EGMRF_UCB(object):
 
         mu_tilda = np.array([r.sum() * gamma + self.ALPHA * gamma0 for r in r_grid]) / gamma_tilda
 
-        tau1 = - np.diag(gamma_tilda)
-        tau2 = np.zeros_like(tau1)
+        # tau1 = - np.diag(gamma_tilda)
+        # tau2 = np.zeros_like(tau1)
 
-        self.tau0 = self.baseTau0 * self.GAMMA_Y
+        tau1 = -sp.sparse.diags(gamma_tilda)
 
-        tmp1 = np.concatenate([self.tau0, tau1])
-        tmp2 = np.concatenate([tau1, tau2])
-        all_tau = np.concatenate([tmp1, tmp2], axis=1)
-        diag = np.sum(all_tau, axis=1)
+        tau0 = self.baseTau0 * self.GAMMA_Y
 
-        all_tau[np.diag_indices_from(all_tau)] = -diag
-        tau = all_tau[:self.tau0.shape[0], :self.tau0.shape[1]]
+        # tmp1 = np.concatenate([tau0, tau1])
+        # tmp2 = np.concatenate([tau1, tau2])
+        # all_tau = np.concatenate([tmp1, tmp2], axis=1)
+        # diag = np.sum(all_tau, axis=1)
+
+        # all_tau[np.diag_indices_from(all_tau)] = -diag
+        # tau = all_tau[:tau0.shape[0], :tau0.shape[1]]
+
+        tau0 -= sp.sparse.diags(- gamma_tilda + mat_flatten(tau0.sum(axis=0)))
+        tau = tau0
+        # print (tau.toarray())
 
         if return_all:
             return tau, -tau1, mu_tilda, gamma_tilda, r_grid, n_grid
@@ -217,12 +237,20 @@ class EGMRF_UCB(object):
 
     def update(self, n_start_opt_hyper_param=5):
         theta = [self.GAMMA, self.GAMMA_Y]
-        self.A, self.B, mu_tilda, gamma_tilda = self.calc_tau(theta)
+        A, B, mu_tilda, gamma_tilda = self.calc_tau(theta)
 
-        cov = np.linalg.inv(self.A)  # TODO: should use cholesky like "L = cholesky(tau)"
+        # cov = np.linalg.inv(A)  # TODO: should use cholesky like "L = cholesky(tau)"
+        cov = sp.sparse.linalg.inv(A)
 
-        self.mu = cov.dot(self.B).dot(mu_tilda)
-        self.sigma = np.sqrt(cov[np.diag_indices_from(cov)])
+        # self.mu = cov.dot(B).dot(mu_tilda)
+        # self.sigma = np.sqrt(cov[np.diag_indices_from(cov)])
+
+        self.mu = mat_flatten(cov.dot(B).dot(mu_tilda))
+        self.sigma = mat_flatten(np.sqrt(cov[np.diag_indices_from(cov)]))
+        # print('-' * 100)
+        # print (self.mu)
+        # print (self.sigma)
+        # print('-' * 100)
 
         if self.update_only_gamma_y and len(self.T) > n_start_opt_hyper_param:
             self.update_gammaY()
@@ -265,7 +293,10 @@ class EGMRF_UCB(object):
             return False
 
         if self.pairwise_sampling:
-            adj_idxes = np.where(self.baseTau0[grid_idx] != 0)[0]
+            # print (self.baseTau0.toarray())
+            # adj_idxes = np.where(self.baseTau0[grid_idx] != 0)[0]
+            adj_idxes = sp.sparse.find(self.baseTau0[grid_idx] != 0)[1]
+
             adj_idx = random.choice(adj_idxes)
             obserbed_val2 = self.sample(self.X_grid[adj_idx])
             if obserbed_val2 is None:
@@ -293,7 +324,7 @@ class EGMRF_UCB(object):
         n0 = n_exp - n1
         t = transform_click_val2real_val(n0, n1)
 
-        # TODO change the structure self.X and self.Treal (should not use list)
+        # TODO change the structure self.X and self.Treal (should not use list because of the problem of consuming-memory when the obserbation is many 01 values)
         for _ in range(n_exp):
             self.X.append(x)
             self.Treal = np.append(self.Treal, t)
@@ -359,9 +390,8 @@ class EGMRF_UCB(object):
     def update_hyper_params_by_pairwise_sampling(self):
         var = self.paiwise_var_list.sum() / len(self.paiwise_var_list)
 
-        self.GAMMA_Y = 1 / var / self.ndim
-        # self.GAMMA_Y = 1 / var
-
+        # self.GAMMA_Y = 1 / var / self.ndim
+        self.GAMMA_Y = 1 / var
 
         # self.GAMMA_Y = 1 / var
         print("New GammaY: %s" % self.GAMMA_Y)
@@ -369,6 +399,7 @@ class EGMRF_UCB(object):
         print("New Gamma: %s" % self.GAMMA)
         self.GAMMA0 = self.GAMMA * 0.01
 
+    # TODO this method does not work well...
     def update_gammaY(self):
 
         if self.pairwise_sampling:
@@ -417,6 +448,7 @@ class EGMRF_UCB(object):
         log_likelihood = (y_hat.dot(Lambda.dot(y_hat[:, np.newaxis])) - np.log(np.linalg.det(Lambda) + 0.00001))[0]
         print('log_likelihood: %s' % log_likelihood)
 
+    # TODO this method does not work well...
     def log_marginal_likelihood(self, theta=None, eval_gradient=False):
         """Returns log-marginal likelihood of theta for training data.
 
