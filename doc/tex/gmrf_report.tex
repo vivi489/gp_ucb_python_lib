@@ -2,6 +2,7 @@
 \usepackage{commath}
 \usepackage[english]{babel} % English language/hyphenation
 \usepackage{amsmath, amssymb,amsfonts,amsthm,bm}
+\usepackage{booktabs}
 
 \global\long\def\T#1{#1^{\top}}
 \begin{document}
@@ -14,12 +15,17 @@
 
 \subsection{Continuous Value Reward Pattern}
 
-$\bm{y}$: the true values of node (hidden variable) \\
-$\bm{r}_i$: the reward list of $node_i$ \\
-$n_i$: the length of the reward list of $node_i$ \\
-$\gamma_i=\frac{1}{\sigma_i^2}$: $\sigma_i^2$ denotes the variance of observed value of $node_i$ \\
-$\gamma_0=\frac{1}{\sigma_0^2}$: $\sigma_0^2$ denotes the variance of prior value of $node_i$ \\
-$\alpha$: the mean of prior value of $node_i$ \\
+\begin{table}[htb]
+\begin{tabular}{ll} \toprule
+Variables & Explanation \\ \toprule
+$\bm{y}$ & the true values of node (hidden variable) \\
+$\bm{r}_i$ & the reward list of $node_i$ \\
+$n_i$ & the length of the reward list of $node_i$ \\
+$\gamma_i=\frac{1}{\sigma_i^2}$ & this controls how observation values affect. $\sigma_i^2$ denotes the variance of observed value of $node_i$ \\
+$\gamma_0=\frac{1}{\sigma_0^2}$ & $\sigma_0^2$ denotes the variance of prior value of $node_i$ \\
+$\alpha$ & the mean of prior value of $node_i$ \\ \bottomrule
+\end{tabular}
+\end{table}
 
 \begin{eqnarray}
   P(\bm{r}) &:& const \\
