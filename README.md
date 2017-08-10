@@ -5,6 +5,12 @@
 -->
 
 ## Install
+First, please install "suit-sparse"
+
+If you use Mac, 
+[this Japanese artilce](http://d.hatena.ne.jp/seinzumtode/20160131/1454224288) would be helpful.
+
+
 ```
 python setup.py install --force
 ```

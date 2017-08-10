@@ -67,6 +67,41 @@ def create_adjacent_matrix(meshgrid):
     return tau0
 
 
+def create_adjacency_mat_using_pdist(dim_list):
+    meshgrid = np.array(np.meshgrid(*[np.arange(ndim) for ndim in dim_list]))
+    X_grid = meshgrid.reshape(meshgrid.shape[0], -1).T
+    dist = pdist(X_grid, adj_metric)
+    return squareform(dist)
+
+
+def create_adjacency_mat(dim_list, calc_sparse=True):
+    xp = scipy.sparse if calc_sparse else np
+    adj1d_list = [create_adjacency_mat_using_pdist([ndim]) for ndim in dim_list]
+    if len(dim_list) == 1:
+        if calc_sparse:
+            return scipy.sparse.csc_matrix(adj1d_list[0])
+        else:
+            return adj1d_list[0]
+
+    K = xp.kron(adj1d_list[1], xp.eye(dim_list[0])) + xp.kron(xp.eye(dim_list[1]), adj1d_list[0])
+    if len(dim_list) == 2:
+        if calc_sparse:
+            return K.tocsc()
+        else:
+            return K
+
+    prod = dim_list[0] * dim_list[1]
+
+    for i in range(2, len(dim_list)):
+        K = xp.kron(K, xp.eye(dim_list[i])) + xp.kron(xp.eye(prod), adj1d_list[i])
+        prod *= dim_list[i]
+
+    if calc_sparse:
+        return K.tocsc()
+    else:
+        return K
+
+
 class EGMRF_UCB(object):
     def __init__(self, meshgrid, environment, GAMMA=0.01, GAMMA0=0.01, GAMMA_Y=0.01, ALPHA=0.1, BETA=16,
                  burnin=0, is_edge_normalized=False, noise=True, n_early_stopping=20,
@@ -100,6 +135,10 @@ class EGMRF_UCB(object):
         self.ndim = len(meshgrid)
 
         self.meshgrid = np.array(meshgrid)
+
+        mesh_shape = self.meshgrid[0].shape
+        self.ndim_list = mesh_shape[:2][::-1] + mesh_shape[2:]
+
         self.X_grid = self.meshgrid.reshape(self.meshgrid.shape[0], -1).T
         self.normalized_X_grid = create_normalized_X_grid(self.meshgrid)
 
@@ -159,7 +198,7 @@ class EGMRF_UCB(object):
             self.T = np.array(T)
             print("Reloaded csv.")
 
-        tau0 = create_adjacent_matrix(self.meshgrid)
+        tau0 = - create_adjacency_mat(self.ndim_list)
 
         # edge_idxes = np.count_nonzero(tau0, axis=1) < self.ndim * 2
         # print('edge num is ' + str(edge_idxes.sum()))
@@ -167,14 +206,23 @@ class EGMRF_UCB(object):
         # row_sum_list = -tau0.sum(axis=1, keepdims=True)
         row_sum_list = - mat_flatten(tau0.sum(axis=0))
         self.diff_list = row_sum_list.max() - row_sum_list
-
+        print (np.count_nonzero(self.diff_list))
         # TODO this normalization should be reconsidered
         if is_edge_normalized:
-            weight_arr = self.ndim * 2 / row_sum_list
-            print(weight_arr)
+            weight_arr = np.matrix(np.sqrt(self.ndim * 2 / row_sum_list))
+            # print(weight_arr)
+            weight_mat = weight_arr.T.dot(weight_arr)
+            # print (weight_mat.shape)
+            # print (np.where(weight_mat != 1)[0].shape)
 
-            tau0 *= weight_arr[:, np.newaxis]
-            tau0 *= weight_arr
+            # weight_mat = weight_arr.T.dot(weight_arr)
+            print(type(tau0))
+            tau0 *= weight_mat
+            print (type(tau0))
+            tau0 = scipy.sparse.csc_matrix(tau0)
+            print(type(tau0))
+            # tau0 *= np.sqrt(weight_arr[:, np.newaxis])
+            # tau0 *= np.sqrt(weight_arr[np.newaxis, :])
 
         self.baseTau0 = tau0
         # print (tau0.toarray())
@@ -214,7 +262,7 @@ class EGMRF_UCB(object):
         # tau1 = - np.diag(gamma_tilda)
         # tau2 = np.zeros_like(tau1)
 
-        tau1 = -sp.sparse.diags(gamma_tilda)
+        tau1 = -scipy.sparse.diags(gamma_tilda)
 
         tau0 = self.baseTau0 * self.GAMMA_Y
 
@@ -226,7 +274,7 @@ class EGMRF_UCB(object):
         # all_tau[np.diag_indices_from(all_tau)] = -diag
         # tau = all_tau[:tau0.shape[0], :tau0.shape[1]]
 
-        tau0 -= sp.sparse.diags(- gamma_tilda + mat_flatten(tau0.sum(axis=0)))
+        tau0 -= scipy.sparse.diags(- gamma_tilda + mat_flatten(tau0.sum(axis=0)))
         tau = tau0
         # print (tau.toarray())
 
@@ -240,7 +288,7 @@ class EGMRF_UCB(object):
         A, B, mu_tilda, gamma_tilda = self.calc_tau(theta)
 
         # cov = np.linalg.inv(A)  # TODO: should use cholesky like "L = cholesky(tau)"
-        cov = sp.sparse.linalg.inv(A)
+        cov = scipy.sparse.linalg.inv(A)
 
         # self.mu = cov.dot(B).dot(mu_tilda)
         # self.sigma = np.sqrt(cov[np.diag_indices_from(cov)])
@@ -295,7 +343,7 @@ class EGMRF_UCB(object):
         if self.pairwise_sampling:
             # print (self.baseTau0.toarray())
             # adj_idxes = np.where(self.baseTau0[grid_idx] != 0)[0]
-            adj_idxes = sp.sparse.find(self.baseTau0[grid_idx] != 0)[1]
+            adj_idxes = scipy.sparse.find(self.baseTau0[grid_idx] != 0)[1]
 
             adj_idx = random.choice(adj_idxes)
             obserbed_val2 = self.sample(self.X_grid[adj_idx])

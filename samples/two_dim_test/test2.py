@@ -59,7 +59,7 @@ MEAN, STD = 0, 1
 
 reload = False
 n_iter = 500
-N_EARLY_STOPPING = 200
+N_EARLY_STOPPING = 500
 
 ALPHA = MEAN  # prior:
 

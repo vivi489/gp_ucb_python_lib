@@ -18,6 +18,28 @@ from gphypo.util import mkdir_if_not_exist, plot_loss
 # SCALE = 1000
 # OFFSET = 10
 
+class ThreeDimGaussianEnvironment(BasicEnvironment):
+    def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
+        super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
+
+    def run_model(self, model_number, x, calc_gr=False, n_exp=1):
+        mean1 = [3, 3, 3]
+        cov1 = np.eye(3) / 3
+
+        mean2 = [-2, -2, -2]
+        cov2 = np.eye(3)
+
+        if x.ndim == 1:
+            pass
+        elif x.ndim == 2:
+            x = x.T
+        else:
+            return "OOPS"
+
+        obs = multivariate_normal.pdf(x, mean=mean1, cov=cov1) + multivariate_normal.pdf(x, mean=mean2,
+                                                                                             cov=cov2)
+        return obs
+
 
 class ThreeDimEnvironment(BasicEnvironment):
     def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
@@ -59,8 +81,8 @@ class ThreeDimEnvironment(BasicEnvironment):
             return "OOPS"
 
         obs = (multivariate_normal.pdf(x[:2], mean=mean1, cov=cov1) + multivariate_normal.pdf(x[:2], mean=mean2,
-                                                                                             cov=cov2) \
-              + multivariate_normal.pdf(x[:2], mean=mean3, cov=cov3)) * 10 + x[2]
+                                                                                              cov=cov2) \
+               + multivariate_normal.pdf(x[:2], mean=mean3, cov=cov3)) * 10 + x[2]
         return obs
 
 
@@ -73,8 +95,8 @@ NORMALIZE_OUTPUT = True
 MEAN, STD = 0, 1
 
 reload = False
-n_iter = 500
-N_EARLY_STOPPING = 200
+n_iter = 1000
+N_EARLY_STOPPING = 1000
 
 ALPHA = MEAN  # prior:
 GAMMA_Y = 5 / ((STD * ndim) ** 2)  # weight of adjacent
@@ -124,7 +146,10 @@ for param_name in param_names:
 
     gp_param2model_param_dic[param_name] = param_df.to_dict()['gp_' + param_name]
 
-env = ThreeDimEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
+# env = ThreeDimEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
+#                           output_dir=output_dir,
+#                           reload=reload)
+env = ThreeDimGaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
                           output_dir=output_dir,
                           reload=reload)
 
