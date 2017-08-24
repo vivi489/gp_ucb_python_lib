@@ -96,7 +96,6 @@ ndim = 3
 BETA = 5  ## sqrt(BETA) controls the ratio between ucb and mean
 
 NORMALIZE_OUTPUT = 'zero_mean_unit_var'
-MEAN, STD = 0, 1
 
 reload = False
 n_iter = 1000
@@ -110,13 +109,10 @@ GAMMA_Y = 10 ** (-2)  # weight of adjacen
 IS_EDGE_NORMALIZED = True
 
 BURNIN = 0
-UPDATE_HYPERPARAM = False
+UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
 INITIAL_K = 10
 INITIAL_THETA = 10
-
-UPDATE_ONLY_GAMMA_Y = True
-PAIRWISE_SAMPLING = True
 
 # kernel = Matern(2.5)
 
@@ -163,9 +159,8 @@ env = ThreeDimGaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_
 agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
                   is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
                   burnin=BURNIN,
-                  normalize_output=NORMALIZE_OUTPUT, update_hyperparam=UPDATE_HYPERPARAM,
-                  update_only_gamma_y=UPDATE_ONLY_GAMMA_Y,
-                  initial_k=INITIAL_K, initial_theta=INITIAL_THETA, does_pairwise_sampling=PAIRWISE_SAMPLING)
+                  normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
+                  initial_k=INITIAL_K, initial_theta=INITIAL_THETA)
 
 for i in tqdm(range(n_iter)):
     try:

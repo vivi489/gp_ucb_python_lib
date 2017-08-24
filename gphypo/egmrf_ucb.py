@@ -2,6 +2,7 @@
 import os
 import random
 import warnings
+from operator import itemgetter
 
 import numpy as np
 import scipy
@@ -18,6 +19,9 @@ from gphypo.acquisition_func import UCB, EI, PI
 from gphypo.transform_val import transform_click_val2real_val
 from .util import mkdir_if_not_exist
 
+
+# TODO
+## Implement more efficient computation when the obeserbation is 0 or 1 values (not real values)
 
 def adj_metric(u, v):
     '''
@@ -79,8 +83,7 @@ class EGMRF_UCB(object):
     def __init__(self, meshgrid, environment, GAMMA=0.01, GAMMA0=0.01, GAMMA_Y=0.01, ALPHA=0.1, BETA=16,
                  burnin=0, is_edge_normalized=False, noise=True, n_early_stopping=None,
                  gt_available=False, normalize_output="zero_mean_unit_var", optimizer="fmin_l_bfgs_b",
-                 update_hyperparam=False,
-                 update_only_gamma_y=False, initial_k=1, initial_theta=1, does_pairwise_sampling=False,
+                 update_hyperparam_func='pairwise_sampling', initial_k=1, initial_theta=1,
                  acquisition_func='ucb'):
 
         '''
@@ -101,9 +104,17 @@ class EGMRF_UCB(object):
 
         self.environment = environment
         self.optimizer = optimizer
-        self.update_hyperparam = update_hyperparam
 
-        self.update_only_gamma_y = update_only_gamma_y
+        self.does_pairwise_sampling = False
+        assert update_hyperparam_func in [None, "pairwise_sampling", "simple_loglikelihood", "loglikelihood"]
+        if update_hyperparam_func == 'pairwise_sampling':
+            self.update_hyperparam = self.update_hyper_params_by_pairwise_sampling
+            self.does_pairwise_sampling = True
+        elif update_hyperparam_func == 'simple_loglikelihood':
+            self.update_hyperparam = self.update_hyperparams_by_simple_loglikelihood
+        else:
+            self.update_hyperparam = self.update_hyperparams_by_loglikelihood
+
         self.k = initial_k
         self.theta = initial_theta
 
@@ -126,17 +137,16 @@ class EGMRF_UCB(object):
         self.X_grid = self.meshgrid.reshape(self.meshgrid.shape[0], -1).T
         self.normalized_X_grid = create_normalized_X_grid(self.meshgrid)
 
+        assert acquisition_func in ["ucb", "ei", "pi"]
         if acquisition_func == 'ucb':
             param_dic = {'beta': BETA}
             self.acquisition_func = UCB(param_dic, d_size=self.X_grid.shape[0])
         elif acquisition_func == 'ei':
             param_dic = {'par': 0.001}
             self.acquisition_func = EI(param_dic)
-        elif acquisition_func == 'pi':
+        else:
             param_dic = {'par': 0.001}
             self.acquisition_func = PI(param_dic)
-        else:
-            raise Exception("acquisition_func must be 'ucb', 'ei', 'pi'")
 
         self.mu = np.array([0. for _ in range(self.X_grid.shape[0])])
         self.sigma = np.array([0.5 for _ in range(self.X_grid.shape[0])])
@@ -161,12 +171,11 @@ class EGMRF_UCB(object):
         self.bestX = None
         self.bestT = -np.inf
         self.cnt_since_bestT = 0
+
         if n_early_stopping:
             self.n_early_stopping = n_early_stopping
         else:
             self.n_early_stopping = np.inf
-
-        self.does_pairwise_sampling = does_pairwise_sampling
 
         if environment.reload:
             X = environment.result_df[environment.gp_param_names].as_matrix()
@@ -201,7 +210,7 @@ class EGMRF_UCB(object):
         print(tau0.toarray())
 
         if burnin > 0 and not environment.reload:
-            if self.does_pairwise_sampling:
+            if update_hyperparam_func == 'pairwise_sampling':
                 for _ in range(burnin):
                     n_points = self.X_grid.shape[0]
                     rand_idx = np.random.randint(n_points)
@@ -217,20 +226,8 @@ class EGMRF_UCB(object):
                     self.sample(x)
 
             print('%d burins has finised!' % burnin)
-            # print(self.X, self.T)
             self.bestX = self.X[np.argmax(self.Treal)]
             self.bestT = self.Treal.max()
-
-            if self.update_hyperparam:
-                self.ALPHA = self.T.mean()
-                diff = self.T.std()
-                print("mean: %f, std: %f" % (self.T.mean(), self.T.std()))
-
-                # TODO: this is not correct
-                self.GAMMA_Y = 2 / ((diff) ** 2)
-                self.GAMMA = 2 * self.ndim * self.GAMMA_Y  # 0.01 200  # weight of obserbed data
-                self.GAMMA0 = 0.01 * self.GAMMA  # 0.01  # weight of alpha
-                print("GAMMA_Y: %f, GAMMA: %f, GAMMA0: %f" % (self.GAMMA_Y, self.GAMMA, self.GAMMA0))
 
         self.update()
 
@@ -252,10 +249,10 @@ class EGMRF_UCB(object):
 
         return np.array(r_grid)
 
-    def calc_tau(self, theta, return_all=False):
-        gamma = theta[0]
-        gamma_y = theta[1]
-        gamma0 = 0.01 * gamma  # TODO hard coding
+    def calc_tau(self, return_all=False):
+        gamma = self.GAMMA
+        gamma_y = self.GAMMA_Y
+        gamma0 = self.GAMMA0
 
         r_grid = self.get_r_grid()
         n_grid = np.array([len(r) for r in r_grid])
@@ -276,51 +273,6 @@ class EGMRF_UCB(object):
             return tau0, -tau1, mu_tilda, gamma_tilda, r_grid, n_grid
 
         return tau0, -tau1, mu_tilda, gamma_tilda
-
-    def update(self, n_start_opt_hyper_param=0):
-        theta = [self.GAMMA, self.GAMMA_Y]
-        A, B, mu_tilda, gamma_tilda = self.calc_tau(theta)
-
-        # start = time.time()
-        # cov = scipy.sparse.linalg.inv(A) # This is slow
-
-        factor = cholesky(A)
-        cov = scipy.sparse.csc_matrix(factor(np.eye(A.shape[0])))
-        # end = time.time() - start
-        # print("one calc: %s sec" % end)
-
-        self.mu = mat_flatten(cov.dot(B).dot(mu_tilda))
-        self.sigma = mat_flatten(np.sqrt(cov[np.diag_indices_from(cov)]))
-
-        if self.update_only_gamma_y and len(self.T) > n_start_opt_hyper_param:
-            self.update_gammaY()
-
-            # if self.update_hyperparam and len(self.T) > n_start_opt_hyper_param:
-            #     # Update hyper-paramter of GMRF below
-            #     def obj_func(theta, eval_gradient=True):
-            #         if eval_gradient:
-            #             lml, grad = self.log_marginal_likelihood(
-            #                 theta, eval_gradient=True)
-            #             return -lml, -grad
-            #         else:
-            #             return -self.log_marginal_likelihood(theta)
-            #
-            #     # optima = [(self._constrained_optimization(obj_func, theta))] # Use when gradient can be calculated
-            #     optima = [(self._constrained_optimization(lambda x: obj_func(x, eval_gradient=False)
-            #                                               , theta,
-            #                                               gradExist=False))]  # Use when gradient cannot be calculated
-            #
-            #     # Select result from run with minimal (negative) log-marginal likelihood
-            #     lml_values = list(map(itemgetter(1), optima))
-            #
-            #     self.GAMMA, self.GAMMA_Y = optima[np.argmin(lml_values)][0]
-            #
-            #     self.GAMMA0 = 0.001 * self.GAMMA  # TODO Hard coding
-            #
-            #     print("GAMMA: %s, GAMMA_Y: %s" % (self.GAMMA, self.GAMMA_Y))
-            #
-            #     self.log_marginal_likelihood_value_ = -np.min(lml_values)
-            #     print("log_marginal_likelihood: %s" % self.log_marginal_likelihood_value_)
 
     def get_pairwise_idx(self, idx):
         adj_idxes = scipy.sparse.find(self.baseTau0[idx] != 0)[1]
@@ -346,6 +298,36 @@ class EGMRF_UCB(object):
 
         self.update()
         return True
+
+    def sample(self, x):
+        t = self.environment.sample(x)
+
+        self.X.append(x)
+        self.Treal = np.append(self.Treal, t)
+        # print (self.Treal)
+
+        if self.normalize_output == "zero_mean_unit_var":
+            # Normalize output to have zero mean and unit standard deviation
+            # self.T, self.t_mean, self.t_std = normalization.zero_mean_unit_var_normalization(self.Treal) ## This is a mistake
+            tmp, self.t_mean, self.t_std = normalization.zero_mean_unit_var_normalization(np.unique(self.Treal))
+            self.T = (self.Treal - self.t_mean) / self.t_std
+
+        elif self.normalize_output == "zero_one":
+            self.T, self.t_lower, self.t_upper = normalization.zero_one_normalization(self.Treal)
+        else:
+            self.T = np.copy(self.Treal)
+
+        if t <= self.bestT:
+            self.cnt_since_bestT += 1
+        else:
+            self.bestT = t
+            self.bestX = x
+            self.cnt_since_bestT = 0
+
+        if self.cnt_since_bestT > self.n_early_stopping:
+            return None
+
+        return self.T[-1]
 
     def learn_from_click(self, n_exp=10):
         grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, self.T))
@@ -390,37 +372,25 @@ class EGMRF_UCB(object):
 
         return True
 
-    def sample(self, x):
-        t = self.environment.sample(x)
+    def update(self, n_start_opt_hyper_param=0):
+        A, B, mu_tilda, gamma_tilda = self.calc_tau()
 
-        self.X.append(x)
-        self.Treal = np.append(self.Treal, t)
-        # print (self.Treal)
+        # start = time.time()
+        # cov = scipy.sparse.linalg.inv(A) # This is slow
 
-        if self.normalize_output == "zero_mean_unit_var":
-            # Normalize output to have zero mean and unit standard deviation
-            # self.T, self.t_mean, self.t_std = normalization.zero_mean_unit_var_normalization(self.Treal) ## This is a mistake
-            tmp, self.t_mean, self.t_std = normalization.zero_mean_unit_var_normalization(np.unique(self.Treal))
-            self.T = (self.Treal - self.t_mean) / self.t_std
+        factor = cholesky(A)
+        cov = scipy.sparse.csc_matrix(factor(np.eye(A.shape[0])))
+        # end = time.time() - start
+        # print("one calc: %s sec" % end)
 
-        elif self.normalize_output == "zero_one":
-            self.T, self.t_lower, self.t_upper = normalization.zero_one_normalization(self.Treal)
-        else:
-            self.T = np.copy(self.Treal)
+        self.mu = mat_flatten(cov.dot(B).dot(mu_tilda))
+        self.sigma = mat_flatten(np.sqrt(cov[np.diag_indices_from(cov)]))
 
-        if t <= self.bestT:
-            self.cnt_since_bestT += 1
-        else:
-            self.bestT = t
-            self.bestX = x
-            self.cnt_since_bestT = 0
+        # Update hyperparamters
+        if self.update_hyperparam is not None and len(self.T) > n_start_opt_hyper_param:
+            self.update_hyperparam()
 
-        if self.cnt_since_bestT > self.n_early_stopping:
-            return None
-
-        return self.T[-1]
-
-    def update_hyper_params_by_does_pairwise_sampling(self):
+    def update_hyper_params_by_pairwise_sampling(self):
         # pairwise_var_list = np.array([(t2 - t1) ** 2 for t1, t2 in zip(self.T[::2], self.T[1::2])]) ## This is a mistake
         pairwise_var_list = np.unique(np.array([(t2 - t1) ** 2 for t1, t2 in zip(self.T[::2], self.T[1::2])]))
         var = pairwise_var_list.mean()
@@ -432,16 +402,12 @@ class EGMRF_UCB(object):
         print("New GammaY: %s" % self.GAMMA_Y)
         print("New Gamma: %s" % self.GAMMA)
 
-        # self.ALPHA = np.unique(self.T).mean()
-        # print("New ALPHA: %s" % self.ALPHA)
+        if self.normalize_output is None:
+            self.ALPHA = np.unique(self.T).mean()
+            print("New ALPHA: %s" % self.ALPHA)
 
-    # TODO this method does not work well...
-    def update_gammaY(self):
-
-        if self.does_pairwise_sampling:
-            self.update_hyper_params_by_does_pairwise_sampling()
-            return
-
+    # TODO this method does not work well and caliculation is heavy...
+    def update_hyperparams_by_simple_loglikelihood(self):
         r_grid = self.get_r_grid()
 
         mean_grid = np.array([r_list.mean() for r_list in r_grid])
@@ -455,8 +421,7 @@ class EGMRF_UCB(object):
 
         new_X_grid = np.concatenate([self.normalized_X_grid[obserbed_idxes], self.normalized_X_grid[unobserbed_idxes]],
                                     axis=0)
-        # dist = pdist(new_X_grid, metric='sqeuclidean')  # TODO heavy calculation
-        dist = pdist(new_X_grid, metric=adj_metric)
+        dist = pdist(new_X_grid, metric=adj_metric)  # TODO heavy calculation
 
         A = np.zeros_like(dist)
         A[dist == 1 ** 2] = -1
@@ -477,24 +442,56 @@ class EGMRF_UCB(object):
         self.k += 1 / 2
         self.theta = self.theta / (t * self.theta + 1)
         self.GAMMA_Y = (self.k - 1) * self.theta
+        self.GAMMA = self.GAMMA_Y * (2 * self.ndim)
+        self.GAMMA0 = self.GAMMA * 0.01
+
+        if self.normalize_output is None:
+            self.ALPHA = np.unique(self.T).mean()
+            print("New ALPHA: %s" % self.ALPHA)
+
         print("New GammaY: %s" % self.GAMMA_Y)
+        print("New Gamma: %s" % self.GAMMA)
         print("t: %s" % t)
         print('k: %s, theta: %s' % (self.k, self.theta))
 
         log_likelihood = (y_hat.dot(Lambda.dot(y_hat[:, np.newaxis])) - np.log(np.linalg.det(Lambda) + 0.00001))[0]
         print('log_likelihood: %s' % log_likelihood)
 
+    def update_hyperparams_by_loglikelihood(self):
+        # Update hyper-paramter of GMRF below
+        def obj_func(eval_gradient=True):
+            if eval_gradient:
+                lml, grad = self.log_marginal_likelihood(eval_gradient=True)
+                return -lml, -grad
+            else:
+                return -self.log_marginal_likelihood()
+
+        # optima = [(self._constrained_optimization(obj_func, theta))] # Use when gradient can be calculated
+        optima = [(self._constrained_optimization(lambda x: obj_func(x, eval_gradient=False),
+                                                  gradExist=False))]  # Use when gradient cannot be calculated
+
+        # Select result from run with minimal (negative) log-marginal likelihood
+        lml_values = list(map(itemgetter(1), optima))
+
+        self.GAMMA, self.GAMMA_Y = optima[np.argmin(lml_values)][0]
+        self.GAMMA0 = 0.01 * self.GAMMA
+
+        print("New GammaY: %s" % self.GAMMA_Y)
+        print("New Gamma: %s" % self.GAMMA)
+
+        if self.normalize_output is None:
+            self.ALPHA = np.unique(self.T).mean()
+            print("New ALPHA: %s" % self.ALPHA)
+
+        self.log_marginal_likelihood_value_ = -np.min(lml_values)
+        print("log_marginal_likelihood: %s" % self.log_marginal_likelihood_value_)
+
     # TODO this method does not work well...
-    def log_marginal_likelihood(self, theta=None, eval_gradient=False):
-        """Returns log-marginal likelihood of theta for training data.
+    def log_marginal_likelihood(self, eval_gradient=False):
+        """Returns log-marginal likelihood of theta for training data.(theta is hyper-paramters)
 
         Parameters
         ----------
-        theta : array-like, shape = (n_kernel_params,) or None
-            Kernel hyperparameters for which the log-marginal likelihood is
-            evaluated. If None, the precomputed log_marginal_likelihood
-            of ``self.kernel_.theta`` is returned.
-
         eval_gradient : bool, default: False
             If True, the gradient of the log-marginal likelihood with respect
             to the kernel hyperparameters at position theta is returned
@@ -510,11 +507,10 @@ class EGMRF_UCB(object):
             hyperparameters at position theta.
             Only returned when eval_gradient is True.
         """
-        A, B, mu_tilda, gamma_tilda, r_grid, n_grid = self.calc_tau(theta=theta, return_all=True)
+        A, B, mu_tilda, gamma_tilda, r_grid, n_grid = self.calc_tau(return_all=True)
 
-        # print ( A, B, mu_tilda, gamma_tilda, r_grid, n_grid)
-        gamma = theta[0]
-        gamma_y = theta[1]
+        gamma = self.GAMMA
+        gamma_y = self.GAMMA_Y
 
         A1 = np.copy(self.baseTau0)
         A1[np.diag_indices_from(A1)] = 2 * self.ndim
@@ -556,8 +552,8 @@ class EGMRF_UCB(object):
         else:
             return log_likelihood
 
-    def _constrained_optimization(self, obj_func, initial_theta, bounds=[(1e-5, 1e5), (1e-5, 1e5)], gradExist=True):
-
+    def _constrained_optimization(self, obj_func, bounds=[(1e-5, 1e5), (1e-5, 1e5)], gradExist=True):
+        initial_theta = [self.GAMMA, self.GAMMA_Y]
         if gradExist:
             if self.optimizer == "fmin_l_bfgs_b":
                 theta_opt, func_min, convergence_dict = \

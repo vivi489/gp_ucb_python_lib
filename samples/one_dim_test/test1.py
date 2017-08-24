@@ -73,13 +73,11 @@ GAMMA_Y = 3  # 10 ** (-2)  # weight of adjacen
 IS_EDGE_NORMALIZED = True
 
 BURNIN = 0  # TODO
-UPDATE_HYPERPARAM = False
 
 INITIAL_K = 10
 INITIAL_THETA = 10
+UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling' # None
 
-UPDATE_ONLY_GAMMA_Y = True
-PAIRWISE_SAMPLING = True
 # kernel = Matern(2.5)
 
 output_dir = 'output'
@@ -129,9 +127,8 @@ def main():
                       BETA=BETA,
                       is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
                       burnin=BURNIN,
-                      normalize_output=NORMALIZE_OUTPUT, update_hyperparam=UPDATE_HYPERPARAM,
-                      update_only_gamma_y=UPDATE_ONLY_GAMMA_Y,
-                      initial_k=INITIAL_K, initial_theta=INITIAL_THETA, does_pairwise_sampling=PAIRWISE_SAMPLING)
+                      normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
+                      initial_k=INITIAL_K, initial_theta=INITIAL_THETA)
 
     # for i in tqdm(range(n_iter)):
     for i in range(n_iter):

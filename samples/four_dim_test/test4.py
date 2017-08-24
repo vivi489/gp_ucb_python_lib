@@ -50,9 +50,6 @@ n_iter = 1000
 N_EARLY_STOPPING = 1000
 
 ALPHA = ndim ** 2  # prior:
-# GAMMA_Y = 10 / ((STD * ndim) ** 2)  # weight of adjacent
-# GAMMA = 10 * GAMMA_Y
-# GAMMA0 = 0.01 * GAMMA
 
 GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
@@ -62,8 +59,7 @@ IS_EDGE_NORMALIZED = True
 
 BURNIN = 0
 
-PAIRWISE_SAMPLING = True
-UPDATE_ONLY_GAMMA_Y = True
+UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
 # kernel = Matern(2.5)
 
@@ -105,8 +101,7 @@ env = FourDimGaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_d
 
 agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
                   is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=None, burnin=BURNIN,
-                  normalize_output=NORMALIZE_OUTPUT, update_only_gamma_y=UPDATE_ONLY_GAMMA_Y,
-                  does_pairwise_sampling=PAIRWISE_SAMPLING)
+                  normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC)
 
 for i in tqdm(range(n_iter)):
     try:
