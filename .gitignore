@@ -26,3 +26,8 @@ dist
 *.synctex.gz
 
 *.pdf
+samples/three_dim_test/gaussian_info.txt
+samples/three_dim_test/one_mountain_info.txt
+samples/three_dim_test/param_dir/one_mountain_info 2.txt
+samples/three_dim_test/param_dir/one_mountain_info.txt
+
