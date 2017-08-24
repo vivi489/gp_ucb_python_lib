@@ -1,0 +1,23 @@
+p\left( \bm{r} ,y | \alpha, \gamma_0, \gamma \right) &= p\left( y | \alpha, \gamma_0 \right) p\left( \bm{r} | y, \gamma \right) \\
+   &= C\exp \left( -\dfrac {1} {2} \gamma_0 \left( y-\alpha \right) ^{2}\right)
+   \exp \left( -\dfrac {1} {2}\gamma n\left( y-\dfrac {\sum _{j}r^{j}} {n}\right) ^{2}\right) \\
+   &= C'\exp \left( - \dfrac {1} {2} \tilde{\gamma} \left( y - \tilde {\mu} \right) ^{2}  \right)
+
+\tilde{\mu} &= \dfrac {\gamma \sum _{j}r^{j}+\gamma_0\alpha _{0}} {\gamma n+\gamma _{0}} \\
+\tilde{\gamma} &= \gamma n+\gamma _{0}
+
+
+\log p( \bm{r}, \bm{y}| \gamma, \gamma_y, \gamma_0, \alpha)
+  &\propto \sum_i \left( \dfrac {\gamma_y} {2} \sum_{i,j\in{J_i}} \left(y_i - y_j \right)^2
+    + \dfrac {\tilde{\gamma_i}} {2} \left( y_{i} - \tilde {\mu_i} \right) ^{2} \right) \\
+  &= \begin{pmatrix} \bm{y} ^\top  \tilde{\bm{\mu}}^\top \end{pmatrix}
+        \begin{pmatrix}
+            \bm{A} & -\bm{B} \\
+            -\bm{B} & \bm{B}
+        \end{pmatrix}
+        \begin{pmatrix}
+          \bm{y}  \\
+          \tilde{\bm{\mu}}
+        \end{pmatrix} \\
+  &= (\T{\bm{y} } - \T{\tilde{\bm{\mu}}}\bm{B} \bm{A}^{-1}) \bm{A} (\bm{y}  - \bm{A}^{-1} \bm{B} \tilde{\bm{\mu}})
+    + \tilde{\bm{\mu}}^\top (\bm{B} - \bm{B} \bm{A}^{-1} \bm{B} ) \tilde{\bm{\mu}}

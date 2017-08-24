@@ -3,6 +3,7 @@
 \usepackage[english]{babel} % English language/hyphenation
 \usepackage{amsmath, amssymb,amsfonts,amsthm,bm}
 \usepackage{booktabs}
+\usepackage{listings}
 
 \global\long\def\T#1{#1^{\top}}
 \begin{document}
@@ -13,12 +14,12 @@
 
 \section{algebra}
 
-\subsection{Continuous Value Reward Pattern}
+\subsection{Continuous Value Reward pattern}
 
 \begin{table}[htb]
 \begin{tabular}{ll} \toprule
 Variables & Explanation \\ \toprule
-$\bm{y}$ & the true values of node (hidden variable) \\
+$\bm{y}$ & the true values of $node$ (hidden variable) \\
 $\bm{r}_i$ & the reward list of $node_i$ \\
 $n_i$ & the length of the reward list of $node_i$ \\
 $\gamma_i=\frac{1}{\sigma_i^2}$ & this controls how observation values affect. $\sigma_i^2$ denotes the variance of observed value of $node_i$ \\
@@ -27,16 +28,22 @@ $\alpha$ & the mean of prior value of $node_i$ \\ \bottomrule
 \end{tabular}
 \end{table}
 
+
+
 \begin{eqnarray}
-  P(\bm{r}) &:& const \\
-  P\left( \bm{y} |\bm{r}\right) &\propto&  P\left( \bm{r} ,\bm{y}\right) \\
-    &=& P\left( \bm{y} \right) P\left( \bm{r} |\bm{y}\right) \\
-    &=& P\left( \bm{y} \right) \prod_i P\left( \bm{r}_i |y_i \right) \\
-  P\left( y_{i} | \alpha, \gamma_0 \right) &=& C\exp \left( -\dfrac {\gamma_0} {2} \left( y_{i}-\alpha \right) ^{2}\right) \\
-  P(r_{i}^{j} | y_{i}, \gamma) &=& C\exp \left( -\dfrac {\gamma} {2}\left( r_{i}^{j}-y_{i}\right) ^{2}\right) \\
-  P\left( \bm{r}_i | y_i, \gamma \right) &=& C\exp \left( -\dfrac {\gamma} {2}\sum _{j}\left( {r_{i}^{j}}^2-2r_{i}^{j}y_{i}+y_{i}^{2}\right) \right) \\
+  p(\bm{r}) &:& const \\
+  p\left( \bm{y} |\bm{r}\right) &\propto&  p\left( \bm{r} ,\bm{y}\right) \\
+    &=& p\left( \bm{y} \right) p\left( \bm{r} |\bm{y}\right) \\
+    &=& p\left( \bm{y} \right) \prod_i p\left( \bm{r}_i |y_i \right) \\
+  p\left( y_{i} | \alpha, \gamma_0 \right)
+    &=& C\exp \left( -\dfrac {\gamma_0} {2} \left( y_{i}-\alpha \right) ^{2}\right) \\
+  p(r_{i}^{j} | y_{i}, \gamma)
+    &=& C\exp \left( -\dfrac {\gamma} {2} \left( r_{i}^{j}-y_{i}\right) ^{2}\right) \\
+  p\left( \bm{r}_i | y_i, \gamma \right)
+    &=& C\exp \left( -\dfrac {\gamma} {2}\sum_{j}^J \left( r_{i}^{j}-y_{i}\right) ^{2}\right) \\
+    &=& C\exp \left( -\dfrac {\gamma} {2}\sum_{j}\left( {r_{i}^{j}}^2-2r_{i}^{j}y_{i}+y_{i}^{2}\right) \right) \\
     &=& C'\exp \left( -\dfrac {1} {2}\gamma n_{i}\left( y_{i}-\dfrac {\sum _{j}r_{i}^{j}} {n_{i}}\right) ^{2}\right) \\
-  P\left( \bm{r}_i ,y_i | \alpha, \gamma_0, \gamma \right) &=& P\left( y_i | \alpha, \gamma_0 \right) P\left( \bm{r}_i | y_i, \gamma \right) \\
+  p\left( \bm{r}_i ,y_i | \alpha, \gamma_0, \gamma \right) &=& p\left( y_i | \alpha, \gamma_0 \right) p\left( \bm{r}_i | y_i, \gamma \right) \\
     &=& C\exp \left( -\dfrac {1} {2} \gamma_0 \left( y_{i}-\alpha \right) ^{2}\right)
     \exp \left( -\dfrac {1} {2}\gamma n_{i}\left( y_{i}-\dfrac {\sum _{j}r_{i}^{j}} {n_{i}}\right) ^{2}\right) \\
     &=& C'\exp \left( - \dfrac {1} {2} \tilde{\gamma_i} \left( y_{i} - \tilde {\mu_i} \right) ^{2}  \right)
@@ -59,7 +66,7 @@ $I_{N}$ : n-dimension identiry matrix
   \vdots&\vdots& \ddots &&& \\
   -\gamma_y &\vdots&& \ddots &&& \\
   &-\gamma_y&&& \ddots &&& \\
-  &&&&& 2d\gamma_y + \tilde{\gamma_N} \\
+  &&\cdots&&& 2d\gamma_y + \tilde{\gamma_N} \\
   \end{pmatrix} \\
   B &=& \tilde {\gamma_i} I_{N} \\
     &=& \begin{pmatrix}
@@ -74,9 +81,12 @@ $I_{N}$ : n-dimension identiry matrix
 $\bm{A}=\T{\bm{D}} \bm{D}$, $\bm{z}=\bm{D}\bm{y}$
 
 \begin{eqnarray}
+  p( \bm{r}, \bm{y}| \gamma, \gamma_y, \gamma_0, \alpha)
+    &=& C \exp  \left( - \sum_i \left( \dfrac {\gamma_y} {2} \sum_{i,j\in{J_i}} \left(y_i - y_j \right)^2
+      + \dfrac {\tilde{\gamma_i}} {2} \left( y_{i} - \tilde {\mu_i} \right) ^{2} \right) \right)\\
   E(\bm{y})
-    &=& \dfrac {\gamma_y} {2} \sum_{i,j\in{J_i}} \left(y_i - y_j \right)^2
-      + \dfrac {\tilde{\gamma_i}} {2} \left( y_{i} - \tilde {\mu_i} \right) ^{2}\\
+    &=& \sum_i \left( \dfrac {\gamma_y} {2} \sum_{i,j\in{J_i}} \left(y_i - y_j \right)^2
+      + \dfrac {\tilde{\gamma_i}} {2} \left( y_{i} - \tilde {\mu_i} \right) ^{2} \right)\\
   2E(\bm{y})
     &=& \begin{pmatrix} \bm{y} ^\top  \tilde{\bm{\mu}}^\top \end{pmatrix}
         \begin{pmatrix}
@@ -107,9 +117,10 @@ $\bm{A}=\T{\bm{D}} \bm{D}$, $\bm{z}=\bm{D}\bm{y}$
 \end{eqnarray}
 
 \begin{eqnarray}
-  P( \bm{r} | \gamma, \gamma_y, \gamma_0, \alpha) &=& \int d\bm{y}  P( \bm{r} | \bm{y} , \gamma, \gamma_y, \gamma_0, \alpha) P(\bm{y} ) \\
-  &=&  \int d\bm{y}  \exp\left(- E(\bm{y} ) \right) \\
-  &\propto& |\Lambda|^{\frac{1}{2}}  \exp\left( - \frac{1}{2} \tilde{\bm{\mu}}^\top \Lambda \tilde{\bm{\mu}}\right)
+  p( \bm{r}, \bm{y} | \gamma, \gamma_y, \gamma_0, \alpha)
+    &=& \int d\bm{y}  p( \bm{r}|\bm{y}, \gamma, \gamma_y, \gamma_0, \alpha ) p(\bm{y} ) \\
+    &=&  \int d\bm{y}  \exp\left(- E(\bm{y} ) \right) \\
+    &\propto& |\Lambda|^{\frac{1}{2}}  \exp\left( - \frac{1}{2} \tilde{\bm{\mu}}^\top \Lambda \tilde{\bm{\mu}}\right)
 \end{eqnarray}
 
 \begin{eqnarray}
@@ -149,14 +160,14 @@ we assume $\gamma_0=0$, then $\tilde{\bm{\mu}_i} = \dfrac {\sum _{j}r_{i}^{j}} {
 \end{eqnarray}
 
 \begin{eqnarray}
-  \log P( \bm{r}, \gamma_y | \gamma, \gamma_0, \alpha)
-      &\propto& \log P( \bm{r} | \gamma, \gamma_y, \gamma_0, \alpha)P(\gamma_y) \\
-      &=& \log P( \bm{r} | \gamma, \gamma_y, \gamma_0, \alpha) + \log P(\gamma_y) \\
+  \log p(\gamma_y | \bm{r}, \bm{y},\gamma, \gamma_0, \alpha)
+      &\propto& \log p( \bm{r}, \bm{y} | \gamma, \gamma_y, \gamma_0, \alpha)p(\gamma_y) \\
+      &=& \log p( \bm{r}, \bm{y} | \gamma, \gamma_y, \gamma_0, \alpha) + \log p(\gamma_y) \\
       &=& \frac{1}{2} \log|\Lambda| - \frac{1}{2} \tilde{\bm{\mu}}^\top \Lambda \tilde{\bm{\mu}}
         + \log \gamma_y^{k-1} \frac{e^{-\gamma_y/\theta}}{\Gamma(k) \theta^k} \\
       &=& \frac{1}{2} \log|\Lambda| - \frac{1}{2} \tilde{\bm{\mu}}^\top \Lambda \tilde{\bm{\mu}}
         + (k-1)\log \gamma_y -  \frac{\gamma_y}{\theta} + C \\
-  \frac{\partial \log P( \bm{r}, \gamma_y | \bm{y}, \gamma, \gamma_0, \alpha)}{\partial \gamma_y}
+  \frac{\partial \log p(\gamma_y | \bm{r}, \bm{y}, \gamma, \gamma_0, \alpha)}{\partial \gamma_y}
       &=& \frac{1}{2} \mathrm{Tr}( \Lambda^{-1} \frac{\partial \Lambda}{\partial \gamma_y})
         + \gamma^2   \tilde{\bm{\mu}}^\top \left(\bm{A}_2 \bm{A}^{-1} \bm{A}_1 \bm{A}^{-1} \bm{A}_2  \right)  \tilde{\bm{\mu}}
         + \frac{k-1}{\gamma_y} - \frac{1}{\theta} \\
@@ -165,12 +176,68 @@ we assume $\gamma_0=0$, then $\tilde{\bm{\mu}_i} = \dfrac {\sum _{j}r_{i}^{j}} {
         + \frac{k-1}{\gamma_y} - \frac{1}{\theta} \\
 \end{eqnarray}
 
-\subsection{Binary Value Reward Pattern}
+\subsection{Binary Value Reward pattern}
 
 
+\section{Implementation}
+\subsection{Adjacency Matrix Creation}
+In order to create matrix$A$, an adjacency matrix is necessary.
+An adjacency matrix can be calculated using Kronecker product.
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+import scipy.sparse
+from scipy.spatial.distance import pdist, squareform
+
+def adj_metric(u, v):
+    '''
+    give this function to scipy.spatial.distance.dist
+    :param u (1d numpy array): one coordinate
+    :param v (1d numpy array): one coordinate
+    :return: 1 if (u, v) is adj else 0
+    '''
+    if np.abs(u - v).sum() == 1:
+        return 1
+    else:
+        return 0
+
+def create_adjacency_mat_using_pdist(dim_list):
+    meshgrid = np.array(np.meshgrid(*[np.arange(ndim) for ndim in dim_list]))
+    X_grid = meshgrid.reshape(meshgrid.shape[0], -1).T
+    dist = pdist(X_grid, adj_metric)
+    return squareform(dist)
 
 
+def create_adjacency_mat(dim_list, calc_sparse=True):
+    K_func = lambda x: scipy.sparse.csc_matrix(x) if calc_sparse else x
+
+    xp = scipy.sparse if calc_sparse else np
+    adj1d_list = [create_adjacency_mat_using_pdist([ndim]) for ndim in dim_list]
+    if len(dim_list) == 1:
+        return K_func(adj1d_list[0])
+
+    K = xp.kron(adj1d_list[1], xp.eye(dim_list[0])) + xp.kron(xp.eye(dim_list[1]), adj1d_list[0])
+
+    prod = dim_list[0] * dim_list[1]
+
+    for i in range(2, len(dim_list)):
+        K = xp.kron(K, xp.eye(dim_list[i])) + xp.kron(xp.eye(prod), adj1d_list[i])
+        prod *= dim_list[i]
+
+    return K_func(K)
 
 
+\end{lstlisting}
+
+\subsection{Inverse matrix$A$ calculation }
+$A$ is a symmetric matrix and the inverse matrix of $A$ can be calculated efficiently using cholesky decomposition.
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+from sksparse.cholmod import cholesky
+# cov = scipy.sparse.linalg.inv(A) # inefficient
+factor = cholesky(A)
+cov = scipy.sparse.csc_matrix(factor(np.eye(A.shape[0])))
+\end{lstlisting}
+
+\section{Tips}
 
 \end{document}

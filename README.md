@@ -5,15 +5,15 @@
 -->
 
 ## Install
-First, please install "suit-sparse"
+First, please install [suite-sparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) (necessary for efficient computation)
 
-If you use Mac, 
-[this Japanese artilce](http://d.hatena.ne.jp/seinzumtode/20160131/1454224288) would be helpful.
+If you use Mac, execute this command.
+```bash
+brew install suite-sparse
 
-
+pip install scikit-sparse
 ```
-python setup.py install --force
-```
+
 
 
 ## Usage
