@@ -7,6 +7,7 @@ from operator import itemgetter
 
 import numpy as np
 import scipy
+from matplotlib import cm
 from matplotlib import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.optimize import fmin_l_bfgs_b
@@ -591,6 +592,30 @@ class EGMRF_UCB(object):
         return theta_opt, func_min
 
     def plot(self, output_dir):
+        def plot3d():
+            fig = plt.figure()
+            ax = Axes3D(fig)
+
+            if self.gt_available:
+                c_true, lower, upper = normalization.zero_one_normalization(self.z)
+                c_true = cm.bwr(c_true * 255)
+                ax.scatter([x[0] for x in self.X_grid], [x[1] for x in self.X_grid], [x[2] for x in self.X_grid],
+                           c=c_true, marker='o',
+                           alpha=0.5, s=5)
+
+                c = cm.bwr(normalization.zero_one_normalization(self.Treal, self.z.min(), self.z.max())[0] * 255)
+            else:
+                c = cm.bwr(normalization.zero_one_normalization(self.Treal)[0] * 255)
+
+            ax.scatter([x[0] for x in self.X], [x[1] for x in self.X], [x[2] for x in self.X], c='y', marker='o',
+                       alpha=0.5)
+
+            if self.does_pairwise_sampling:
+                ax.scatter(self.X[-1][0], self.X[-1][1], self.X[-1][2], c='m', s=50, marker='o', alpha=1.0)
+                ax.scatter(self.X[-2][0], self.X[-2][1], self.X[-2][2], c='m', s=100, marker='o', alpha=1.0)
+            else:
+                ax.scatter(self.X[-1][0], self.X[-1][1], self.X[-1][2], c='m', s=50, marker='o', alpha=1.0)
+
         def plot2d():
             fig = plt.figure()
             ax = Axes3D(fig)
@@ -653,19 +678,15 @@ class EGMRF_UCB(object):
             else:
                 plt.scatter(self.X[-1], self.Treal[-1], c='m', s=50, marker='o', alpha=1.0)
 
+        if self.ndim in [1, 2, 3]:
+            exec("plot{}d()".format(self.ndim))
             out_fn = os.path.join(output_dir, 'res_%04d.png' % len(self.X))
             mkdir_if_not_exist(output_dir)
 
             plt.savefig(out_fn)
             plt.close()
-
-        if self.X_grid.shape[1] == 2:
-            plot2d()
             return
 
-        elif self.X_grid.shape[1] == 1:
-            plot1d()
-            return
 
         else:
             print("Sorry... Plotting only supports 1 dim or 2 dim.")
