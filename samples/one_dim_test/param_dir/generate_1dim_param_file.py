@@ -6,7 +6,7 @@ import pandas as pd
 from gphypo.util import mkdir_if_not_exist
 
 gp_param_dic = {
-    'x': np.arange(40*np.pi, 45*np.pi, 0.10)
+    'x': np.arange(-5, 5.1, 0.25)
 }
 
 gp_param2gaussian_param = {

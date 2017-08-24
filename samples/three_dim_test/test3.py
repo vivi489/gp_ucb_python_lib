@@ -24,10 +24,13 @@ class ThreeDimGaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gr=False, n_exp=1):
         mean1 = [3, 3, 3]
-        cov1 = np.eye(3) / 3
+        cov1 = np.eye(3) * 0.7
 
-        mean2 = [-2, -2, -2]
-        cov2 = np.eye(3)
+        mean2 = [-3, -3, -3]
+        cov2 = np.eye(3) * 0.5
+
+        # mean3 = [-2, 5, 0]
+        # cov3 = np.eye(3) * 1
 
         if x.ndim == 1:
             pass
@@ -36,8 +39,9 @@ class ThreeDimGaussianEnvironment(BasicEnvironment):
         else:
             return "OOPS"
 
-        obs = multivariate_normal.pdf(x, mean=mean1, cov=cov1) + multivariate_normal.pdf(x, mean=mean2,
-                                                                                             cov=cov2)
+        obs = multivariate_normal.pdf(x, mean=mean1, cov=cov1) \
+              + multivariate_normal.pdf(x, mean=mean2, cov=cov2) \
+              # + multivariate_normal.pdf(x, mean=mean3, cov=cov3)
         return obs
 
 
@@ -91,33 +95,34 @@ ndim = 3
 
 BETA = 5  ## sqrt(BETA) controls the ratio between ucb and mean
 
-NORMALIZE_OUTPUT = True
+NORMALIZE_OUTPUT = 'zero_mean_unit_var'
 MEAN, STD = 0, 1
 
 reload = False
 n_iter = 1000
 N_EARLY_STOPPING = 1000
 
-ALPHA = MEAN  # prior:
-GAMMA_Y = 5 / ((STD * ndim) ** 2)  # weight of adjacent
-# GAMMA = 5 * GAMMA_Y
-GAMMA = (2 * ndim) * GAMMA_Y
+ALPHA = ndim**2 # prior:
+GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
-IS_EDGE_NORMALIZED = False
+GAMMA_Y =  10 ** (-2)  # weight of adjacen
+
+IS_EDGE_NORMALIZED = True
 
 BURNIN = 0
 UPDATE_HYPERPARAM = False
-UPDATE_ONLY_GAMMA_Y = True
+
 INITIAL_K = 10
 INITIAL_THETA = 10
 
+UPDATE_ONLY_GAMMA_Y = True
 PAIRWISE_SAMPLING = True
 
 # kernel = Matern(2.5)
 
 output_dir = 'output'
 parameter_dir = os.path.join('param_dir', 'csv_files')
-result_filename = os.path.join(output_dir, 'gaussian_result_2dim.csv')
+result_filename = os.path.join(output_dir, 'gaussian_result_3dim.csv')
 
 ########################
 
@@ -150,8 +155,8 @@ for param_name in param_names:
 #                           output_dir=output_dir,
 #                           reload=reload)
 env = ThreeDimGaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
-                          output_dir=output_dir,
-                          reload=reload)
+                                  output_dir=output_dir,
+                                  reload=reload)
 
 # agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=BETA, gt_available=True, my_kernel=kernel)
 
@@ -160,7 +165,7 @@ agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, 
                   burnin=BURNIN,
                   normalize_output=NORMALIZE_OUTPUT, update_hyperparam=UPDATE_HYPERPARAM,
                   update_only_gamma_y=UPDATE_ONLY_GAMMA_Y,
-                  initial_k=INITIAL_K, initial_theta=INITIAL_THETA, pairwise_sampling=PAIRWISE_SAMPLING)
+                  initial_k=INITIAL_K, initial_theta=INITIAL_THETA, does_pairwise_sampling=PAIRWISE_SAMPLING)
 
 for i in tqdm(range(n_iter)):
     try:

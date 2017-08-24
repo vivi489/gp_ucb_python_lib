@@ -24,13 +24,14 @@ class GaussianEnvironment(BasicEnvironment):
         cov1 = [[2, 0], [0, 2]]
 
         mean2 = [-2, -2]
-        cov2 = [[1, 0], [0, 1]]
+        # cov2 = [[1, 0], [0, 1]]
+        cov2 = [[1.5, 0], [0, 1.5]]
 
         # mean3 = [3, -3]
         # cov3 = [[0.6, 0], [0, 0.6]]
 
         mean3 = [3, -3]
-        cov3 = [[0.7, 0], [0, 0.7]]
+        cov3 = [[0.5, 0], [0, 0.5]]
 
         mean4 = [0, 0]
         cov4 = [[0.1, 0], [0, 0.1]]
@@ -46,7 +47,7 @@ class GaussianEnvironment(BasicEnvironment):
             + multivariate_normal.pdf(x, mean=mean3,
                                       cov=cov3)  # - multivariate_normal.pdf(x, mean=mean4, cov=cov4) * 0.1
 
-        return y * 1000
+        return y * 1000 + 100
 
 
 ########################
@@ -54,29 +55,33 @@ ndim = 2
 
 BETA = 5  ## sqrt(BETA) controls the ratio between ucb and mean
 
-NORMALIZE_OUTPUT = True
+NORMALIZE_OUTPUT = 'zero_mean_unit_var'
+# NORMALIZE_OUTPUT = 'zero_one'
+# NORMALIZE_OUTPUT = None
 MEAN, STD = 0, 1
 
 reload = False
-n_iter = 500
-N_EARLY_STOPPING = 500
+n_iter = 1000
+N_EARLY_STOPPING = 1000
 
-ALPHA = MEAN  # prior:
+# ALPHA = MEAN  # prior:
+# ALPHA = ndim**2
+ALPHA = 10
 
-GAMMA_Y = 5 / ((STD * ndim) ** 2)  # weight of adjacent
-# GAMMA = 5 * GAMMA_Y
-GAMMA = (2 * ndim) * GAMMA_Y
+GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
-IS_EDGE_NORMALIZED = False
+GAMMA_Y =  10 ** (-2)  # weight of adjacen
+
+IS_EDGE_NORMALIZED = True
 
 # kernel = Matern(2.5)
 
-BURNIN = 0
+BURNIN = 0 # TODO
 UPDATE_HYPERPARAM = False
-UPDATE_ONLY_GAMMA_Y = True
 INITIAL_K = 10
 INITIAL_THETA = 10
 
+UPDATE_ONLY_GAMMA_Y = True
 PAIRWISE_SAMPLING = True
 
 output_dir = 'output'
@@ -124,7 +129,7 @@ def main():
                       burnin=BURNIN,
                       normalize_output=NORMALIZE_OUTPUT, update_hyperparam=UPDATE_HYPERPARAM,
                       update_only_gamma_y=UPDATE_ONLY_GAMMA_Y,
-                      initial_k=INITIAL_K, initial_theta=INITIAL_THETA, pairwise_sampling=PAIRWISE_SAMPLING)
+                      initial_k=INITIAL_K, initial_theta=INITIAL_THETA, does_pairwise_sampling=PAIRWISE_SAMPLING)
 
     # for i in tqdm(range(n_iter)):
     for i in range(n_iter):
