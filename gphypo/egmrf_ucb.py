@@ -11,10 +11,10 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.optimize import fmin_l_bfgs_b
 from scipy.sparse import coo_matrix
 from scipy.spatial.distance import pdist, squareform
-from scipy.stats import norm
 from sksparse.cholmod import cholesky
 
 from gphypo import normalization
+from gphypo.acquisition_func import UCB, EI, PI
 from gphypo.transform_val import transform_click_val2real_val
 from .util import mkdir_if_not_exist
 
@@ -80,7 +80,9 @@ class EGMRF_UCB(object):
                  burnin=0, is_edge_normalized=False, noise=True, n_early_stopping=None,
                  gt_available=False, normalize_output="zero_mean_unit_var", optimizer="fmin_l_bfgs_b",
                  update_hyperparam=False,
-                 update_only_gamma_y=False, initial_k=1, initial_theta=1, does_pairwise_sampling=False):
+                 update_only_gamma_y=False, initial_k=1, initial_theta=1, does_pairwise_sampling=False,
+                 acquisition_func='ucb'):
+
         '''
         meshgrid: Output from np.methgrid.
         e.g. np.meshgrid(np.arange(-1, 1, 0.1), np.arange(-1, 1, 0.1)) for 2D space
@@ -96,7 +98,7 @@ class EGMRF_UCB(object):
         self.GAMMA0 = GAMMA0
         self.GAMMA_Y = GAMMA_Y
         self.ALPHA = ALPHA
-        self.BETA = BETA
+
         self.environment = environment
         self.optimizer = optimizer
         self.update_hyperparam = update_hyperparam
@@ -124,11 +126,22 @@ class EGMRF_UCB(object):
         self.X_grid = self.meshgrid.reshape(self.meshgrid.shape[0], -1).T
         self.normalized_X_grid = create_normalized_X_grid(self.meshgrid)
 
+        if acquisition_func == 'ucb':
+            param_dic = {'beta': BETA}
+            self.acquisition_func = UCB(param_dic, d_size=self.X_grid.shape[0])
+        elif acquisition_func == 'ei':
+            param_dic = {'par': 0.001}
+            self.acquisition_func = EI(param_dic)
+        elif acquisition_func == 'pi':
+            param_dic = {'par': 0.001}
+            self.acquisition_func = PI(param_dic)
+        else:
+            raise Exception("acquisition_func must be 'ucb', 'ei', 'pi'")
+
         self.mu = np.array([0. for _ in range(self.X_grid.shape[0])])
         self.sigma = np.array([0.5 for _ in range(self.X_grid.shape[0])])
 
         self.gt_available = gt_available
-        self.learn_cnt = 0
 
         # Calculate ground truth (self.z)
         if self.ndim == 1 and gt_available:
@@ -313,39 +326,6 @@ class EGMRF_UCB(object):
             #     self.log_marginal_likelihood_value_ = -np.min(lml_values)
             #     print("log_marginal_likelihood: %s" % self.log_marginal_likelihood_value_)
 
-    def get_ei(self, par=0.00001):
-        if len(self.T) == 0:
-            z = (1 - self.mu - par) / self.sigma
-        else:
-            # z = (max(self.T) - self.mu - par) / self.sigma
-            z = (self.mu - max(self.T) - par) / self.sigma
-        # z = (self.mu - eta - par) / self.sigma
-        f = self.sigma * (z * norm.cdf(z) + norm.pdf(z))
-        # print (f)
-        return f
-
-    def get_pi(self, par=0.00001):
-        inc_val = 0
-        if len(self.T) > 0:
-            inc_val = max(self.T)
-
-        z = - (inc_val - self.mu - par) / self.sigma
-        return norm.cdf(z)
-
-    def get_ucb(self):
-        # def get_beta(self):
-        #     delta = .5 # in (0, 1)
-        #
-        #     return 2 * np.log(d_size * (t * t) * (Math.PI * Math.PI) / (6 * delta));
-        # self.BETA *= 0.99
-
-        # d_size = self.X_grid.shape[0]
-        # t = self.learn_cnt + 1
-        # delta = 0.9  # must be in (0, 1)
-        # self.BETA = 2 * np.log(d_size * ((t * np.pi) ** 2) / (6 * delta))
-        print("New BETA: %s" % self.BETA)
-        return self.mu + self.sigma * np.sqrt(self.BETA)
-
     def get_pairwise_idx(self, idx):
         # adj_idxes = np.where(self.baseTau0[grid_idx] != 0)[0]
         adj_idxes = scipy.sparse.find(self.baseTau0[idx] != 0)[1]
@@ -353,9 +333,7 @@ class EGMRF_UCB(object):
         return random.choice(adj_idxes)
 
     def learn(self):
-        grid_idx = np.argmax(self.get_ucb())
-        # grid_idx = np.argmax(self.get_ei())
-        # grid_idx = np.argmax(self.get_pi())
+        grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, self.T))
 
         obserbed_val = self.sample(self.X_grid[grid_idx])
         if obserbed_val is None:
@@ -373,17 +351,15 @@ class EGMRF_UCB(object):
         #     self.does_pairwise_sampling = False
 
         self.update()
-        self.learn_cnt += 1
         return True
 
     def learn_from_click(self, n_exp=10):
-        grid_idx = self.argmax_ucb()
+        grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, self.T))
         continue_flg = self.sample_from_click(self.X_grid[grid_idx], n_exp)
         if not continue_flg:
             return False
 
         self.update()
-        self.learn_cnt += 1
         return True
 
     def sample_from_click(self, x, n_exp):
@@ -644,7 +620,7 @@ class EGMRF_UCB(object):
 
             fig = plt.figure()
             ax = Axes3D(fig)
-            ucb_score = self.mu + self.sigma * np.sqrt(self.BETA)
+            ucb_score = self.acquisition_func.compute(self.mu, self.sigma, self.T)
 
             if self.normalize_output == "zero_mean_unit_var":
                 unnormalized_mu = normalization.zero_mean_unit_var_unnormalization(self.mu.flatten(), self.t_mean,
@@ -676,25 +652,22 @@ class EGMRF_UCB(object):
                 ax.scatter(self.X[-1][0], self.X[-1][1], self.Treal[-1], c='m', s=50, marker='o', alpha=1.0)
 
         def plot1d():
-            ucb_score = self.get_ucb()
-            ei_score = self.get_ei()
+            ucb_score = self.acquisition_func.compute(self.mu, self.sigma, self.T)
+
             if self.normalize_output == "zero_mean_unit_var":
                 unnormalized_mu = normalization.zero_mean_unit_var_unnormalization(self.mu.flatten(), self.t_mean,
                                                                                    self.t_std)
                 ucb_score = normalization.zero_mean_unit_var_unnormalization(ucb_score, self.t_mean, self.t_std)
-                ei_score = normalization.zero_mean_unit_var_unnormalization(ei_score, self.t_mean, self.t_std)
                 plt.plot(self.meshgrid[0], unnormalized_mu, color='g')
 
             elif self.normalize_output == "zero_one":
                 unnormalized_mu = normalization.zero_one_unnormalization(self.mu.flatten(), self.t_lower, self.t_upper)
                 ucb_score = normalization.zero_one_unnormalization(ucb_score, self.t_lower, self.t_upper)
-                ei_score = normalization.zero_one_unnormalization(ei_score, self.t_lower, self.t_upper)
                 plt.plot(self.meshgrid[0], unnormalized_mu, color='g')
             else:
                 plt.plot(self.meshgrid[0], self.mu.flatten(), color='g')
 
             plt.plot(self.meshgrid[0], ucb_score.reshape(self.meshgrid[0].shape), color='y')
-            # plt.plot(self.meshgrid[0], ei_score.reshape(self.meshgrid[0].shape), color='c')
 
             if self.gt_available:
                 plt.plot(self.meshgrid[0], self.z, alpha=0.3, color='b')
