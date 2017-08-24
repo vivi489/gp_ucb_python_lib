@@ -49,14 +49,14 @@ reload = False
 n_iter = 1000
 N_EARLY_STOPPING = 1000
 
-ALPHA = ndim**2  # prior:
+ALPHA = ndim ** 2  # prior:
 # GAMMA_Y = 10 / ((STD * ndim) ** 2)  # weight of adjacent
 # GAMMA = 10 * GAMMA_Y
 # GAMMA0 = 0.01 * GAMMA
 
 GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
-GAMMA_Y =  10 ** (-2)  # weight of adjacen
+GAMMA_Y = 10 ** (-2)  # weight of adjacen
 
 IS_EDGE_NORMALIZED = True
 
@@ -100,12 +100,13 @@ for param_name in param_names:
     gp_param2model_param_dic[param_name] = param_df.to_dict()['gp_' + param_name]
 
 env = FourDimGaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
-                         output_dir=output_dir,
-                         reload=reload)
+                                 output_dir=output_dir,
+                                 reload=reload)
 
 agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
                   is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=None, burnin=BURNIN,
-                  normalize_output=NORMALIZE_OUTPUT, update_only_gamma_y=UPDATE_ONLY_GAMMA_Y, does_pairwise_sampling=PAIRWISE_SAMPLING)
+                  normalize_output=NORMALIZE_OUTPUT, update_only_gamma_y=UPDATE_ONLY_GAMMA_Y,
+                  does_pairwise_sampling=PAIRWISE_SAMPLING)
 
 for i in tqdm(range(n_iter)):
     try:

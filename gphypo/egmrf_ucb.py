@@ -178,10 +178,6 @@ class EGMRF_UCB(object):
 
         tau0 = - create_adjacency_mat(self.ndim_list)
 
-        # edge_idxes = np.count_nonzero(tau0, axis=1) < self.ndim * 2
-        # print('edge num is ' + str(edge_idxes.sum()))
-
-        # row_sum_list = -tau0.sum(axis=1, keepdims=True)
         row_sum_list = - mat_flatten(tau0.sum(axis=0))
         self.diff_list = row_sum_list.max() - row_sum_list
         print(np.count_nonzero(self.diff_list))
@@ -189,7 +185,7 @@ class EGMRF_UCB(object):
         print(tau0.toarray())
         self.is_edge_normalized = is_edge_normalized
 
-        # if is_edge_normalized:
+        # if is_edge_normalized: # Not necessary(?)
         #     weight_arr = np.matrix(self.ndim * 2 / row_sum_list)
         #     weight_mat = weight_arr.T.dot(weight_arr)
         #     # weight_mat = np.sqrt(weight_arr.T.dot(weight_arr))
@@ -327,9 +323,7 @@ class EGMRF_UCB(object):
             #     print("log_marginal_likelihood: %s" % self.log_marginal_likelihood_value_)
 
     def get_pairwise_idx(self, idx):
-        # adj_idxes = np.where(self.baseTau0[grid_idx] != 0)[0]
         adj_idxes = scipy.sparse.find(self.baseTau0[idx] != 0)[1]
-        print(adj_idxes)
         return random.choice(adj_idxes)
 
     def learn(self):
@@ -427,17 +421,10 @@ class EGMRF_UCB(object):
         return self.T[-1]
 
     def update_hyper_params_by_does_pairwise_sampling(self):
-        # paiwise_var_list = np.array([(t2 - t1) ** 2 for t1, t2 in zip(self.T[::2], self.T[1::2])]) ## This is a mistake
-        paiwise_var_list = np.unique(np.array([(t2 - t1) ** 2 for t1, t2 in zip(self.T[::2], self.T[1::2])]))
+        # pairwise_var_list = np.array([(t2 - t1) ** 2 for t1, t2 in zip(self.T[::2], self.T[1::2])]) ## This is a mistake
+        pairwise_var_list = np.unique(np.array([(t2 - t1) ** 2 for t1, t2 in zip(self.T[::2], self.T[1::2])]))
+        var = pairwise_var_list.mean()
 
-        # paiwise_var_list = np.append(paiwise_var_list, [3]*self.ndim)
-        # print (paiwise_var_list)
-
-        print("len(paiwise_var_list) = %s" % len(paiwise_var_list))
-
-        var = paiwise_var_list.mean()
-
-        # self.GAMMA_Y = 1 / var / (self.ndim ** 3)
         self.GAMMA_Y = 1 / var / (self.ndim ** 2)
         self.GAMMA = self.GAMMA_Y * (2 * self.ndim)
         self.GAMMA0 = self.GAMMA * 0.01

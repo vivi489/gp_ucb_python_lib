@@ -65,7 +65,7 @@ reload = False
 n_iter = 200
 N_EARLY_STOPPING = None
 
-ALPHA = ndim  # MEAN  # prior:
+ALPHA = ndim ** 2  # MEAN  # prior:
 GAMMA = 6  # 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
 GAMMA_Y = 3  # 10 ** (-2)  # weight of adjacen

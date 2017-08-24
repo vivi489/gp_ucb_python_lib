@@ -41,7 +41,7 @@ class ThreeDimGaussianEnvironment(BasicEnvironment):
 
         obs = multivariate_normal.pdf(x, mean=mean1, cov=cov1) \
               + multivariate_normal.pdf(x, mean=mean2, cov=cov2) \
-              # + multivariate_normal.pdf(x, mean=mean3, cov=cov3)
+            # + multivariate_normal.pdf(x, mean=mean3, cov=cov3)
         return obs
 
 
@@ -102,10 +102,10 @@ reload = False
 n_iter = 1000
 N_EARLY_STOPPING = 1000
 
-ALPHA = ndim**2 # prior:
+ALPHA = ndim ** 2  # prior:
 GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
-GAMMA_Y =  10 ** (-2)  # weight of adjacen
+GAMMA_Y = 10 ** (-2)  # weight of adjacen
 
 IS_EDGE_NORMALIZED = True
 

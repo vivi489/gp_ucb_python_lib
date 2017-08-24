@@ -65,18 +65,17 @@ n_iter = 1000
 N_EARLY_STOPPING = 1000
 
 # ALPHA = MEAN  # prior:
-# ALPHA = ndim**2
-ALPHA = 10
+ALPHA = ndim ** 2
 
 GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
-GAMMA_Y =  10 ** (-2)  # weight of adjacen
+GAMMA_Y = 10 ** (-2)  # weight of adjacen
 
 IS_EDGE_NORMALIZED = True
 
 # kernel = Matern(2.5)
 
-BURNIN = 0 # TODO
+BURNIN = 0  # TODO
 UPDATE_HYPERPARAM = False
 INITIAL_K = 10
 INITIAL_THETA = 10
@@ -124,7 +123,8 @@ def main():
                               reload=reload)
 
     # agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=BETA, gt_available=True, my_kernel=kernel)
-    agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
+    agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
+                      BETA=BETA,
                       is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
                       burnin=BURNIN,
                       normalize_output=NORMALIZE_OUTPUT, update_hyperparam=UPDATE_HYPERPARAM,
@@ -149,15 +149,15 @@ def main():
 
     plot_loss(agent.Treal, 'reward.png')
 
+
 def calc_real_gamma_y():
     env = GaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
-                         output_dir=output_dir,
-                         reload=reload)
+                              output_dir=output_dir,
+                              reload=reload)
 
     meshgrid = np.array(np.meshgrid(*gp_param_list))
     X_grid = meshgrid.reshape(meshgrid.shape[0], -1).T
     normalized_X_grid = create_normalized_X_grid(meshgrid)
-
 
     x_list = list(gp_param2model_param_dic['x'].values())
     y_list = env.run_model(-1, x_list)
@@ -173,7 +173,7 @@ def calc_real_gamma_y():
     adj_even_diff = (y_even_list[1:] - y_even_list[:-1]) ** 2
     real_even_var = adj_even_diff.sum() / (len(adj_even_diff))
     real_even_gamma_y = 1 / real_even_var
-    pred_gamma_y = n_skip**2 * real_even_gamma_y
+    pred_gamma_y = n_skip ** 2 * real_even_gamma_y
     print('pred gamma_y is %s' % pred_gamma_y)
 
     print(len(adj_diff), len(adj_even_diff))
@@ -182,4 +182,3 @@ def calc_real_gamma_y():
 if __name__ == '__main__':
     # calc_real_gamma_y()
     main()
-
