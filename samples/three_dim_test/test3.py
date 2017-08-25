@@ -96,6 +96,8 @@ ndim = 3
 BETA = 5  ## sqrt(BETA) controls the ratio between ucb and mean
 
 NORMALIZE_OUTPUT = 'zero_mean_unit_var'
+# NORMALIZE_OUTPUT = 'zero_one'
+# NORMALIZE_OUTPUT = None
 
 reload = False
 n_iter = 1000
@@ -182,4 +184,4 @@ for i in tqdm(range(n_iter)):
         print("Learnig process was forced to stop!")
         break
 
-plot_loss(agent.Treal, 'reward.png')
+plot_loss(agent.point_info_manager.T_seq, 'reward.png')

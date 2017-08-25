@@ -119,4 +119,4 @@ for i in tqdm(range(n_iter)):
         print("Learnig process was forced to stop!")
         break
 
-plot_loss(agent.Treal, 'reward.png')
+plot_loss(agent.point_info_manager.T_seq, 'reward.png')

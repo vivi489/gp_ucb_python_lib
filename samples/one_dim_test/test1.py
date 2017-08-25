@@ -56,12 +56,12 @@ ndim = 1
 
 BETA = 5  # 25  ## sqrt(BETA) controls the ratio between ucb and mean
 
-NORMALIZE_OUTPUT = 'zero_mean_unit_var'  # ALPHA should be 1
-# NORMALIZE_OUTPUT = 'zero_one' # ALPHA should be 1
-# NORMALIZE_OUTPUT = None
+# NORMALIZE_OUTPUT = 'zero_mean_unit_var'  # ALPHA should be 1
+# NORMALIZE_OUTPUT = 'zero_one'  # ALPHA should be 1
+NORMALIZE_OUTPUT = None
 MEAN, STD = 0, 1
 
-reload = False
+reload = True
 n_iter = 200
 N_EARLY_STOPPING = None
 
@@ -76,7 +76,7 @@ BURNIN = 0  # TODO
 
 INITIAL_K = 10
 INITIAL_THETA = 10
-UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling' # None
+UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
 # kernel = Matern(2.5)
 
@@ -86,11 +86,11 @@ result_filename = os.path.join(output_dir, 'gaussian_result_2dim.csv')
 
 ########################
 
-### temporary ###
-import shutil
-
-if os.path.exists(output_dir):
-    shutil.rmtree(output_dir)
+# ### temporary ###
+# import shutil
+#
+# if os.path.exists(output_dir):
+#     shutil.rmtree(output_dir)
 ##################
 
 
@@ -147,7 +147,7 @@ def main():
             print("Learnig process was forced to stop!")
             break
 
-    plot_loss(agent.Treal, 'reward.png')
+    plot_loss(agent.point_info_manager.T_seq, 'reward.png')
 
 
 def calc_real_gamma_y():

@@ -3,6 +3,7 @@ from . import env
 from . import gpucb
 from . import egmrf_ucb
 from . import run_cmdenv
+from . import point_info
 
 
 # __all__ = ['env', 'gpucb', 'run_cmdenv', 'util']

@@ -42,8 +42,6 @@ class ClickSinEnvironment(BasicEnvironment):
         if n_exp > 1:
             return np.random.binomial(n=n_exp, p=prob)
 
-
-
         clicked = int(flip(prob))
         # print (clicked)
 
@@ -55,14 +53,16 @@ ndim = 1
 
 BETA = 5  ## sqrt(BETA) controls the ratio between ucb and mean
 
-NORMALIZE_OUTPUT = True
+NORMALIZE_OUTPUT = 'zero_mean_unit_var'
+# NORMALIZE_OUTPUT = 'zero_one'
+# NORMALIZE_OUTPUT = None
 MEAN, STD = 0, 1
 
 reload = False
 n_iter = 200
 N_EARLY_STOPPING = 100
 
-ALPHA = MEAN  # prior:
+ALPHA = 1  # prior:
 
 GAMMA_Y_ = 10 / ((STD * ndim) ** 2)  # weight of adjacent
 GAMMA = (2 * ndim) * GAMMA_Y_
@@ -70,12 +70,12 @@ GAMMA = (2 * ndim) * GAMMA_Y_
 GAMMA_Y = 0.01 / ((STD * ndim) ** 2)  # weight of adjacent
 
 GAMMA0 = 0.01 * GAMMA
-# IS_EDGE_NORMALIZED = True
-IS_EDGE_NORMALIZED = False
+IS_EDGE_NORMALIZED = True
+
 
 BURNIN = 0
-UPDATE_HYPERPARAM = False
-UPDATE_ONLY_GAMMA_Y = True
+UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'
+
 INITIAL_K = 1
 INITIAL_THETA = 1
 
@@ -85,7 +85,7 @@ output_dir = 'output'
 parameter_dir = os.path.join('param_dir', 'csv_files')
 result_filename = os.path.join(output_dir, 'gaussian_result_2dim.csv')
 
-N_EXP = 10
+N_EXP = 10000
 ########################
 
 ### temporary ###
@@ -123,14 +123,13 @@ env = ClickSinEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, res
 agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
                   is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
                   burnin=BURNIN,
-                  normalize_output=NORMALIZE_OUTPUT, update_hyperparam=UPDATE_HYPERPARAM,
-                  update_only_gamma_y=UPDATE_ONLY_GAMMA_Y,
+                  normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
                   initial_k=INITIAL_K, initial_theta=INITIAL_THETA)
 
 # for i in tqdm(range(n_iter)):
 for i in range(n_iter):
     try:
-        flg = agent.learn_from_click(N_EXP)
+        flg = agent.learn(n_exp=N_EXP)
 
         agent.plot(output_dir=output_dir)
 
@@ -146,4 +145,4 @@ for i in range(n_iter):
         # print(agent.Treal)
         break
 
-plot_loss(agent.Treal, 'reward.png')
+plot_loss(agent.point_info_manager.T_seq, 'reward.png')

@@ -36,7 +36,7 @@ class BasicEnvironment(object):
                 raise AttributeError(msg)
             else:
                 with open(result_filename, 'w') as f:
-                    columns = self.gp_param_names + self.param_names + ['output']
+                    columns = self.gp_param_names + self.param_names + ['n_exp'] + ['output']
                     f.write(','.join(columns) + os.linesep)
 
                 print(result_filename + " is created!")
@@ -82,8 +82,10 @@ class BasicEnvironment(object):
         print(prefix_msg + pair_msg)
 
         result = self.run_model(n_model, processed_x, n_exp=n_exp)
+        if type(result) == list or type(result) == np.ndarray:
+            result = result[0]
 
-        self.result_df.loc[len(self.result_df)] = list(x) + list(processed_x) + [result]
+        self.result_df.loc[len(self.result_df)] = list(x) + list(processed_x) + [n_exp, result]
 
         self.result_df.to_csv(self.result_filename, index=False)
 
