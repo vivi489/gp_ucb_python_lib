@@ -41,28 +41,37 @@ class BasicEnvironment(object):
 
                 print(result_filename + " is created!")
 
-        self.result_df = pd.read_csv(result_filename)
+        self.result_df = pd.read_csv(result_filename, dtype=str)
         mkdir_if_not_exist(output_dir)
         self.output_dir = output_dir
 
-    def preprocess_x(self, x):
+    def preprocess_x(self, x, get_ground_truth=False):
         '''
-        Transform hyperparameter values (e.g. x -> log(x)
+        Transform hyperparameter values (e.g. x: -> log(x))
+        Also changes data type (str -> np.float64)
         :param x: Original hyperparameter values
         :return: Transformed hyperparameter values
         '''
         x = np.array(x)
 
-        assert x.ndim == 1
-        assert len(x) == len(
-            self.gp_param2model_param_dic), "oops! len(x)=%d, len(self.gp_param2model_param_dic)=%d" % (
-            len(x), len(self.gp_param2model_param_dic))
+        # assert x.ndim == 1
+        # assert len(x) == len(
+        #     self.gp_param2model_param_dic), "oops! len(x)=%d, len(self.gp_param2model_param_dic)=%d" % (
+        #     len(x), len(self.gp_param2model_param_dic))
 
         res = np.zeros_like(x)
-        for i, (key, gp2model) in enumerate(self.gp_param2model_param_dic.items()):
-            res[i] = gp2model[x[i]]
 
-        return res
+        if get_ground_truth:
+            for j in range(x.shape[0]):
+                for i, (key, gp2model) in enumerate(self.gp_param2model_param_dic.items()):
+                    # print (gp2model)
+                    res[j, i] = gp2model[str(x[j, i])]
+
+        else:
+            for i, (key, gp2model) in enumerate(self.gp_param2model_param_dic.items()):
+                res[i] = gp2model[str(x[i])]
+
+        return res.astype(np.float64)
 
     @abstractmethod
     def run_model(self, n_model, x, calc_gt=False, n_exp=1):
@@ -70,7 +79,10 @@ class BasicEnvironment(object):
 
     def sample(self, x, get_ground_truth=False, n_exp=1):
         if get_ground_truth:
-            result = self.run_model(-1, x, True)
+            processed_x = self.preprocess_x(x, get_ground_truth=True)
+            result = self.run_model(-1, processed_x, True)
+            # result = self.run_model(-1, x, True)
+
             return result
 
         n_model = self.result_df.shape[0] + 1
@@ -85,7 +97,7 @@ class BasicEnvironment(object):
         if type(result) == list or type(result) == np.ndarray:
             result = result[0]
 
-        self.result_df.loc[len(self.result_df)] = list(x) + list(processed_x) + [n_exp, result]
+        self.result_df.loc[len(self.result_df)] = list(map(str, list(x) + list(processed_x) + [n_exp, result]))
 
         self.result_df.to_csv(self.result_filename, index=False)
 

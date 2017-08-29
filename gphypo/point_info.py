@@ -16,6 +16,7 @@ class PointInfo(object):
     def get_total_zero_mean_unit_var_normalized_val(self, mu, sigma):
         s = 0
         for val, cnt in self.val2cnt.items():
+            val = float(val)
             normalized_val = (val - mu) / sigma
             s += normalized_val * cnt
         return s
@@ -23,6 +24,7 @@ class PointInfo(object):
     def get_total_zero_one_normalized_val(self, lower, upper):
         s = 0
         for val, cnt in self.val2cnt.items():
+            val = float(val)
             normalized_val = np.true_divide((val - lower), (upper - lower))
             s += normalized_val * cnt
         return s
@@ -30,6 +32,7 @@ class PointInfo(object):
     def get_total_val(self):
         s = 0
         for val, cnt in self.val2cnt.items():
+            val = float(val)
             s += val * cnt
         return s
 
@@ -50,7 +53,7 @@ class PointInfo(object):
 
 class PointInfoManager(object):
     def __init__(self, X_grid, normalize_output):
-        self.X_grid = X_grid
+        self.X_grid = X_grid.astype(np.float64)
         self.n_points = X_grid.shape[0]
         self.normalize_output = normalize_output
         self.point_info_list = [PointInfo(x) for x in X_grid]
@@ -137,6 +140,7 @@ class PointInfoManager(object):
         return np.array([point_info.get_total_cnt() for point_info in self.point_info_list])
 
     def update(self, coordinate, val2cnt):
+        coordinate = coordinate.astype(np.float64)
         diff = self.X_grid - coordinate
         diff2 = diff * diff
         row_idx = np.where(diff2.sum(axis=1) == 0)[0][0]

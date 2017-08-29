@@ -154,12 +154,15 @@ class EGMRF_UCB(object):
 
         # Calculate ground truth (self.z)
         if self.ndim == 1 and gt_available:
-            self.z = self.environment.sample(self.X_grid.flatten(), get_ground_truth=True)
+            # self.z = self.environment.sample(self.X_grid.flatten(), get_ground_truth=True)
+            self.z = self.environment.sample(self.X_grid, get_ground_truth=True)
         elif self.ndim == 2 and gt_available:
             nrow, ncol = self.meshgrid.shape[1:]
-            self.z = self.environment.sample(self.X_grid.T, get_ground_truth=True).reshape(nrow, ncol)
+            # self.z = self.environment.sample(self.X_grid.T, get_ground_truth=True).reshape(nrow, ncol)
+            self.z = self.environment.sample(self.X_grid, get_ground_truth=True).reshape(nrow, ncol)
         elif self.ndim == 3 and gt_available:
-            self.z = self.environment.sample(self.X_grid.T, get_ground_truth=True)
+            # self.z = self.environment.sample(self.X_grid.T, get_ground_truth=True)
+            self.z = self.environment.sample(self.X_grid, get_ground_truth=True)
         else:
             self.z = None
 
@@ -173,25 +176,6 @@ class EGMRF_UCB(object):
             self.n_early_stopping = n_early_stopping
         else:
             self.n_early_stopping = np.inf
-
-        if environment.reload:
-            for key, row in environment.result_df.iterrows():
-                x = row[environment.gp_param_names].as_matrix()
-                t = row['output']
-
-                if row.n_exp > 1:
-                    n1 = self.environment.sample(x, n_exp=row.n_exp)
-                    n0 = row.n_exp - n1
-                    t = transform_click_val2real_val(n0, n1)
-                    if type(t) == list or type(t) == np.ndarray:
-                        t = t[0]
-                    self.point_info_manager.update(x, {t: row.n_exp})
-
-                else:
-                    self.point_info_manager.update(x, {t: 1})
-
-            print(self.point_info_manager.get_T())
-            print("Reloaded csv.")
 
         tau0 = - create_adjacency_mat(self.ndim_list)
 
@@ -219,6 +203,32 @@ class EGMRF_UCB(object):
         row_idxes, col_idxes, _ = scipy.sparse.find(self.baseTau0 != 0)
         self.adj_pair_list = [(r, c) for r, c in zip(row_idxes, col_idxes)]
 
+        # Reload past results if exits
+        if environment.reload:
+            # print (np.float64(environment.result_df.head(1).gp_x))
+            for key, row in environment.result_df.iterrows():
+                x = row[environment.gp_param_names].as_matrix()
+                t = float(row['output'])
+                print(x, t, row.n_exp)
+                n_exp = int(float(row.n_exp))
+                if n_exp > 1:
+                    n1 = self.environment.sample(x, n_exp=n_exp)
+                    n0 = n_exp - n1
+                    t = transform_click_val2real_val(n0, n1)
+                    if type(t) == list or type(t) == np.ndarray:
+                        t = t[0]
+                    self.point_info_manager.update(x, {t: n_exp})
+
+                else:
+                    self.point_info_manager.update(x, {t: 1})
+
+            print(self.point_info_manager.get_T())
+            print("Reloaded csv.")
+
+            if self.update_hyperparam is not None:
+                self.update_hyperparam()
+
+        # BurnIn
         if burnin > 0 and not environment.reload:
             if update_hyperparam_func == 'pairwise_sampling':
                 for _ in range(burnin):
@@ -240,6 +250,9 @@ class EGMRF_UCB(object):
             X_seq, T_seq = self.point_info_manager.X_seq, self.point_info_manager.T_seq
             self.bestT = np.max(T_seq)
             self.bestX = X_seq[np.argmax(T_seq)]
+
+            if self.update_hyperparam is not None:
+                self.update_hyperparam()
 
         self.update()
 
@@ -562,7 +575,8 @@ class EGMRF_UCB(object):
             if self.gt_available:
                 c_true, lower, upper = normalization.zero_one_normalization(self.z)
                 c_true = cm.bwr(c_true * 255)
-                ax.scatter([x[0] for x in self.X_grid], [x[1] for x in self.X_grid], [x[2] for x in self.X_grid],
+                ax.scatter([x[0] for x in self.X_grid.astype(float)], [x[1] for x in self.X_grid.astype(float)],
+                           [x[2] for x in self.X_grid.astype(float)],
                            c=c_true, marker='o',
                            alpha=0.5, s=5)
                 c = cm.bwr(normalization.zero_one_normalization(T_seq, self.z.min(), self.z.max())[0] * 255)
@@ -584,23 +598,29 @@ class EGMRF_UCB(object):
             ax = Axes3D(fig)
             ucb_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T())
             mu = self.mu.flatten()
+
             if self.normalize_output:
                 mu = self.point_info_manager.get_unnormalized_value_list(mu)
                 ucb_score = self.point_info_manager.get_unnormalized_value_list(ucb_score)
 
-            ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1], mu.reshape(self.meshgrid[0].shape), alpha=0.5,
+            # print(mu, ucb_score)
+            # print (self.meshgrid[0])
+            ax.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float),
+                              mu.reshape(self.meshgrid[0].shape), alpha=0.5,
                               color='g')
 
-            ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1],
+            ax.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float),
                               ucb_score.reshape(self.meshgrid[0].shape), alpha=0.5, color='y')
 
             if self.gt_available:
-                ax.plot_wireframe(self.meshgrid[0], self.meshgrid[1], self.z, alpha=0.3, color='b')
+                ax.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float), self.z, alpha=0.3,
+                                  color='b')
 
             X, T = self.point_info_manager.get_observed_XT_pair()
             ax.scatter([x[0] for x in X], [x[1] for x in X], T, c='r', marker='o', alpha=0.5)
 
             X_seq, T_seq = self.point_info_manager.X_seq, self.point_info_manager.T_seq
+
             if self.does_pairwise_sampling:
                 ax.scatter(X_seq[-2][0], X_seq[-2][1], T_seq[-2], c='m', s=100, marker='o', alpha=1.0)
 
@@ -614,8 +634,8 @@ class EGMRF_UCB(object):
                 mu = self.point_info_manager.get_unnormalized_value_list(mu)
                 ucb_score = self.point_info_manager.get_unnormalized_value_list(ucb_score)
 
-            plt.plot(self.meshgrid[0], mu, color='g')
-            plt.plot(self.meshgrid[0], ucb_score, color='y')
+            plt.plot(self.meshgrid[0].astype(float), mu, color='g')
+            plt.plot(self.meshgrid[0].astype(float), ucb_score, color='y')
 
             if self.gt_available:
                 plt.plot(self.meshgrid[0], self.z, alpha=0.3, color='b')

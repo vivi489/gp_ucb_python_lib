@@ -26,12 +26,7 @@ class FourDimGaussianEnvironment(BasicEnvironment):
         mean2 = [-2, -2, -2, -2]
         cov2 = np.eye(4) * 0.5
 
-        if x.ndim == 1:
-            pass
-        elif x.ndim == 2:
-            x = x.T
-        else:
-            return "OOPS"
+        assert x.ndim in [1, 2]
 
         obs = multivariate_normal.pdf(x, mean=mean1, cov=cov1) + multivariate_normal.pdf(x, mean=mean2, cov=cov2)
         return obs * 1e3
@@ -46,10 +41,12 @@ NORMALIZE_OUTPUT = "zero_mean_unit_var"
 MEAN, STD = 0, 1
 
 reload = False
+# reload = True
 n_iter = 1000
 N_EARLY_STOPPING = 1000
 
-ALPHA = ndim ** 2  # prior:
+# ALPHA = ndim ** 2  # prior:
+ALPHA = ndim   # prior:
 
 GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
@@ -65,7 +62,7 @@ UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
 output_dir = 'output'
 parameter_dir = os.path.join('param_dir', 'csv_files')
-result_filename = os.path.join(output_dir, 'gaussian_result_2dim.csv')
+result_filename = os.path.join(output_dir, 'gaussian_result_4dim.csv')
 
 ########################
 
@@ -88,7 +85,7 @@ gp_param2model_param_dic = {}
 
 gp_param_list = []
 for param_name in param_names:
-    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'))
+    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
     gp_param_list.append(param_df[param_name].values)
 
     param_df.set_index(param_name, inplace=True)

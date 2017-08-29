@@ -39,12 +39,7 @@ class OneDimGaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
 
-        if x.ndim == 1:
-            pass
-        elif x.ndim == 2:
-            x = x.T
-        else:
-            return "OOPS"
+        assert x.ndim in [1, 2]
 
         y = norm.pdf(x, loc=-3, scale=0.8) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
 
@@ -56,12 +51,13 @@ ndim = 1
 
 BETA = 5  # 25  ## sqrt(BETA) controls the ratio between ucb and mean
 
-# NORMALIZE_OUTPUT = 'zero_mean_unit_var'  # ALPHA should be 1
+NORMALIZE_OUTPUT = 'zero_mean_unit_var'  # ALPHA should be 1
 # NORMALIZE_OUTPUT = 'zero_one'  # ALPHA should be 1
-NORMALIZE_OUTPUT = None
+# NORMALIZE_OUTPUT = None
 MEAN, STD = 0, 1
 
-reload = True
+reload = False
+# reload = True
 n_iter = 200
 N_EARLY_STOPPING = None
 
@@ -82,15 +78,15 @@ UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
 output_dir = 'output'
 parameter_dir = os.path.join('param_dir', 'csv_files')
-result_filename = os.path.join(output_dir, 'gaussian_result_2dim.csv')
+result_filename = os.path.join(output_dir, 'gaussian_result_1dim.csv')
 
 ########################
 
 # ### temporary ###
-# import shutil
-#
-# if os.path.exists(output_dir):
-#     shutil.rmtree(output_dir)
+import shutil
+
+if os.path.exists(output_dir):
+    shutil.rmtree(output_dir)
 ##################
 
 
@@ -106,7 +102,7 @@ gp_param2model_param_dic = {}
 
 gp_param_list = []
 for param_name in param_names:
-    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'))
+    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
     gp_param_list.append(param_df[param_name].values)
 
     param_df.set_index(param_name, inplace=True)

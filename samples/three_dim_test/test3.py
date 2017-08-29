@@ -32,12 +32,7 @@ class ThreeDimGaussianEnvironment(BasicEnvironment):
         # mean3 = [-2, 5, 0]
         # cov3 = np.eye(3) * 1
 
-        if x.ndim == 1:
-            pass
-        elif x.ndim == 2:
-            x = x.T
-        else:
-            return "OOPS"
+        assert x.ndim in [1, 2]
 
         obs = multivariate_normal.pdf(x, mean=mean1, cov=cov1) \
               + multivariate_normal.pdf(x, mean=mean2, cov=cov2) \
@@ -50,18 +45,6 @@ class ThreeDimEnvironment(BasicEnvironment):
         super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gr=False, n_exp=1):
-        # x = np.array(x)
-        #
-        # y1 = - (x[0] - 2) ** 2 - (x[1] + 3) ** 2 - (x[2] - 4) ** 2
-        # # y2 = - (x[0] + 2) **2 - (x[1] - 4)**2 - (x[2] + 1)**2
-        # y2 = 0
-        #
-        # y = y1 + y2
-        # y *= np.sin(x[0])
-        # # y = x * SCALE + OFFSET
-        #
-        # if y.shape == (1,):
-        #     return y[0]
         mean1 = [3, 3]
         cov1 = [[2, 0], [0, 2]]
 
@@ -77,12 +60,7 @@ class ThreeDimEnvironment(BasicEnvironment):
         mean4 = [0, 0]
         cov4 = [[0.1, 0], [0, 0.1]]
 
-        if x.ndim == 1:
-            pass
-        elif x.ndim == 2:
-            x = x.T
-        else:
-            return "OOPS"
+        assert x.ndim in [1, 2]
 
         obs = (multivariate_normal.pdf(x[:2], mean=mean1, cov=cov1) + multivariate_normal.pdf(x[:2], mean=mean2,
                                                                                               cov=cov2) \
@@ -100,6 +78,7 @@ NORMALIZE_OUTPUT = 'zero_mean_unit_var'
 # NORMALIZE_OUTPUT = None
 
 reload = False
+# reload = True
 n_iter = 1000
 N_EARLY_STOPPING = 1000
 
@@ -142,7 +121,7 @@ gp_param2model_param_dic = {}
 
 gp_param_list = []
 for param_name in param_names:
-    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'))
+    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
     gp_param_list.append(param_df[param_name].values)
 
     param_df.set_index(param_name, inplace=True)

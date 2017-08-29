@@ -36,12 +36,7 @@ class GaussianEnvironment(BasicEnvironment):
         mean4 = [0, 0]
         cov4 = [[0.1, 0], [0, 0.1]]
 
-        if x.ndim == 1:
-            pass
-        elif x.ndim == 2:
-            x = x.T
-        else:
-            return "OOPS"
+        assert x.ndim in [1, 2]
 
         y = multivariate_normal.pdf(x, mean=mean1, cov=cov1) + multivariate_normal.pdf(x, mean=mean2, cov=cov2) \
             + multivariate_normal.pdf(x, mean=mean3,
@@ -55,11 +50,12 @@ ndim = 2
 
 BETA = 5  ## sqrt(BETA) controls the ratio between ucb and mean
 
-NORMALIZE_OUTPUT = 'zero_mean_unit_var'
-# NORMALIZE_OUTPUT = 'zero_one'
+# NORMALIZE_OUTPUT = 'zero_mean_unit_var'
+NORMALIZE_OUTPUT = 'zero_one'
 # NORMALIZE_OUTPUT = None
 MEAN, STD = 0, 1
 
+# reload = True
 reload = False
 n_iter = 1000
 N_EARLY_STOPPING = 1000
@@ -79,8 +75,7 @@ BURNIN = 0  # TODO
 INITIAL_K = 10
 INITIAL_THETA = 10
 
-UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling' # None
-
+UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
 output_dir = 'output'
 parameter_dir = os.path.join('param_dir', 'csv_files')
@@ -108,7 +103,7 @@ gp_param2model_param_dic = {}
 
 gp_param_list = []
 for param_name in param_names:
-    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'))
+    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
     gp_param_list.append(param_df[param_name].values)
 
     param_df.set_index(param_name, inplace=True)

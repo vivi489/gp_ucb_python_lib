@@ -58,7 +58,8 @@ NORMALIZE_OUTPUT = 'zero_mean_unit_var'
 # NORMALIZE_OUTPUT = None
 MEAN, STD = 0, 1
 
-reload = False
+# reload = False
+reload = True
 n_iter = 200
 N_EARLY_STOPPING = 100
 
@@ -89,11 +90,11 @@ N_EXP = 10000
 ########################
 
 ### temporary ###
-import shutil
-
-if os.path.exists(output_dir):
-    shutil.rmtree(output_dir)
-##################
+# import shutil
+#
+# if os.path.exists(output_dir):
+#     shutil.rmtree(output_dir)
+# ##################
 
 
 print('GAMMA: ', GAMMA)
@@ -104,16 +105,22 @@ mkdir_if_not_exist(output_dir)
 
 param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
 
+# print (param_names)
+
 gp_param2model_param_dic = {}
 
 gp_param_list = []
 for param_name in param_names:
-    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'))
+    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
     gp_param_list.append(param_df[param_name].values)
 
     param_df.set_index(param_name, inplace=True)
 
     gp_param2model_param_dic[param_name] = param_df.to_dict()['gp_' + param_name]
+
+# print (param_df)
+print (param_df.index.values[11])
+print (gp_param2model_param_dic['x'])
 
 env = ClickSinEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
                           output_dir=output_dir,
