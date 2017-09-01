@@ -4,9 +4,11 @@ import os
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
+from sklearn.gaussian_process.kernels import Matern, RBF, ConstantKernel as C
 
 from gphypo.egmrf_ucb import EGMRF_UCB
 from gphypo.env import BasicEnvironment
+# from gphypo.gpucb import GPUCB
 from gphypo.normalization import zero_mean_unit_var_normalization
 from gphypo.util import mkdir_if_not_exist, plot_loss
 
@@ -43,7 +45,8 @@ class OneDimGaussianEnvironment(BasicEnvironment):
 
         y = norm.pdf(x, loc=-3, scale=0.8) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
 
-        return y * 1000 + 100
+        # return y * 1000 + 100
+        return y
 
 
 ########################
@@ -68,19 +71,27 @@ GAMMA_Y = 3  # 10 ** (-2)  # weight of adjacen
 
 IS_EDGE_NORMALIZED = True
 
-BURNIN = 0  # TODO
+BURNIN = True  # TODO
 
 INITIAL_K = 10
 INITIAL_THETA = 10
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
-# kernel = Matern(2.5)
+ACQUISITION_FUNC = 'ucb' # 'ei'
 
-output_dir = 'output'
+output_dir = 'output_ucb'
 parameter_dir = os.path.join('param_dir', 'csv_files')
 result_filename = os.path.join(output_dir, 'gaussian_result_1dim.csv')
 
 ########################
+
+# kernel = None
+
+kernel = C(1, constant_value_bounds="fixed") \
+         * RBF(2, length_scale_bounds="fixed")  # works well, but not so sharp
+
+
+# kernel = Matern(nu=2.5)
 
 # ### temporary ###
 import shutil
@@ -119,12 +130,13 @@ def main():
                                     reload=reload)
 
     # agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=BETA, gt_available=True, my_kernel=kernel)
-    agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
+    # agent = GPUCB(gp_param_list, env, beta=BETA, gt_available=True, my_kernel=kernel, burnin=True)
+    agent = EGMRF_UCB(gp_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
                       BETA=BETA,
                       is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
                       burnin=BURNIN,
                       normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
-                      initial_k=INITIAL_K, initial_theta=INITIAL_THETA)
+                      initial_k=INITIAL_K, initial_theta=INITIAL_THETA, acquisition_func=ACQUISITION_FUNC)
 
     # for i in tqdm(range(n_iter)):
     for i in range(n_iter):

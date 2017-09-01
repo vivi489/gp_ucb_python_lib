@@ -8,11 +8,14 @@ from scipy.stats import multivariate_normal
 from gphypo.egmrf_ucb import EGMRF_UCB, create_normalized_X_grid
 # from gphypo.egmrf_ucb import EGMRF_UCB
 from gphypo.env import BasicEnvironment
+from gphypo.gpucb import GPUCB
 from gphypo.normalization import zero_mean_unit_var_normalization
 from gphypo.util import mkdir_if_not_exist, plot_loss
 
 
 # from tqdm import tqdm_notebook as tqdm
+from sklearn.gaussian_process.kernels import Matern
+
 
 class GaussianEnvironment(BasicEnvironment):
     def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
@@ -20,18 +23,21 @@ class GaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
 
-        mean1 = [3, 3]
-        cov1 = [[2, 0], [0, 2]]
+        # mean1 = [3, 3]
+        # cov1 = [[2, 0], [0, 2]]
+        mean1 = [0, 0]
+        cov1 = [[0.5, 0], [0, 0.5]]
 
         mean2 = [-2, -2]
         # cov2 = [[1, 0], [0, 1]]
-        cov2 = [[1.5, 0], [0, 1.5]]
+        # cov2 = [[1.5, 0], [0, 1.5]]
+        cov2 = [[3, 0], [0, 3]]
 
         # mean3 = [3, -3]
         # cov3 = [[0.6, 0], [0, 0.6]]
 
         mean3 = [3, -3]
-        cov3 = [[0.5, 0], [0, 0.5]]
+        cov3 = [[0.7, 0], [0, 0.7]]
 
         mean4 = [0, 0]
         cov4 = [[0.1, 0], [0, 0.1]]
@@ -42,7 +48,8 @@ class GaussianEnvironment(BasicEnvironment):
             + multivariate_normal.pdf(x, mean=mean3,
                                       cov=cov3)  # - multivariate_normal.pdf(x, mean=mean4, cov=cov4) * 0.1
 
-        return y * 1000 + 100
+        # return y * 1000 + 100
+        return y
 
 
 ########################
@@ -50,8 +57,8 @@ ndim = 2
 
 BETA = 5  ## sqrt(BETA) controls the ratio between ucb and mean
 
-# NORMALIZE_OUTPUT = 'zero_mean_unit_var'
-NORMALIZE_OUTPUT = 'zero_one'
+NORMALIZE_OUTPUT = 'zero_mean_unit_var'
+# NORMALIZE_OUTPUT = 'zero_one'
 # NORMALIZE_OUTPUT = None
 MEAN, STD = 0, 1
 
@@ -61,7 +68,7 @@ n_iter = 1000
 N_EARLY_STOPPING = 1000
 
 # ALPHA = MEAN  # prior:
-ALPHA = ndim ** 2
+ALPHA = 0.001 # ndim ** 1
 
 GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
@@ -69,17 +76,21 @@ GAMMA_Y = 10 ** (-2)  # weight of adjacen
 
 IS_EDGE_NORMALIZED = True
 
-# kernel = Matern(2.5)
+kernel = Matern(nu=2.5)
+# kernel = None
 
-BURNIN = 0  # TODO
+BURNIN = True  # TODO
 INITIAL_K = 10
 INITIAL_THETA = 10
 
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
-output_dir = 'output'
+output_dir = 'output_ucb'# _gmrf_min0max1_easy'
 parameter_dir = os.path.join('param_dir', 'csv_files')
 result_filename = os.path.join(output_dir, 'gaussian_result_2dim.csv')
+
+# ACQUISITION_FUNC = 'ucb' # 'ei'
+ACQUISITION_FUNC = 'ucb' # 'ei'
 
 ########################
 
@@ -110,6 +121,7 @@ for param_name in param_names:
 
     gp_param2model_param_dic[param_name] = param_df.to_dict()['gp_' + param_name]
 
+print (gp_param_list)
 
 def main():
     env = GaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
@@ -117,12 +129,13 @@ def main():
                               reload=reload)
 
     # agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=BETA, gt_available=True, my_kernel=kernel)
-    agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
+    # agent = GPUCB(gp_param_list, env, beta=BETA, gt_available=True, my_kernel=kernel, burnin=True)
+    agent = EGMRF_UCB(gp_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
                       BETA=BETA,
                       is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
                       burnin=BURNIN,
                       normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
-                      initial_k=INITIAL_K, initial_theta=INITIAL_THETA)
+                      initial_k=INITIAL_K, initial_theta=INITIAL_THETA, acquisition_func=ACQUISITION_FUNC)
 
     # for i in tqdm(range(n_iter)):
     for i in range(n_iter):

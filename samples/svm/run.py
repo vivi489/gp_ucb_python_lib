@@ -1,6 +1,6 @@
 import argparse
 from myenv import MyEnvironment
-from gphypo.run_cmdenv import run
+from gphypo.run_cmdenv import run_gp
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Draw a loss figure')
@@ -8,4 +8,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     print(args)
-    run(args.input, MyEnvironment)
+    run_gp(args.input, MyEnvironment)

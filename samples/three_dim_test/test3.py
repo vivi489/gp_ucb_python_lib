@@ -24,10 +24,10 @@ class ThreeDimGaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gr=False, n_exp=1):
         mean1 = [3, 3, 3]
-        cov1 = np.eye(3) * 0.7
+        cov1 = np.eye(3) * 1
 
-        mean2 = [-3, -3, -3]
-        cov2 = np.eye(3) * 0.5
+        mean2 = [-4, -4, -4]
+        cov2 = np.eye(3) * 0.8
 
         # mean3 = [-2, 5, 0]
         # cov3 = np.eye(3) * 1
@@ -73,8 +73,8 @@ ndim = 3
 
 BETA = 5  ## sqrt(BETA) controls the ratio between ucb and mean
 
-NORMALIZE_OUTPUT = 'zero_mean_unit_var'
-# NORMALIZE_OUTPUT = 'zero_one'
+# NORMALIZE_OUTPUT = 'zero_mean_unit_var'
+NORMALIZE_OUTPUT = 'zero_one'
 # NORMALIZE_OUTPUT = None
 
 reload = False
@@ -89,7 +89,7 @@ GAMMA_Y = 10 ** (-2)  # weight of adjacen
 
 IS_EDGE_NORMALIZED = True
 
-BURNIN = 0
+BURNIN = True
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
 INITIAL_K = 10
@@ -97,7 +97,8 @@ INITIAL_THETA = 10
 
 # kernel = Matern(2.5)
 
-output_dir = 'output'
+# output_dir = 'output_gmrf_mean0var1_easy'
+output_dir = 'output_gmrf_min0max1_easy'
 parameter_dir = os.path.join('param_dir', 'csv_files')
 result_filename = os.path.join(output_dir, 'gaussian_result_3dim.csv')
 
@@ -137,7 +138,7 @@ env = ThreeDimGaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_
 
 # agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=BETA, gt_available=True, my_kernel=kernel)
 
-agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
+agent = EGMRF_UCB(gp_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
                   is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
                   burnin=BURNIN,
                   normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,

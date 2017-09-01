@@ -5,7 +5,7 @@
     "template_cmdline_filename": "cmdline_svm.txt",
     "template_parameter_filename": "parameter_svm.json",
     "reload": false,
-    "n_iter": 50,
+    "n_iter": 500,
     "beta": 16,
     "noise": true
 }

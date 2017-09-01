@@ -7,10 +7,12 @@ from gphypo.util import mkdir_if_not_exist
 
 gp_param_dic = {
     "c": np.arange(-2, 5.01, 0.2),
+    "gamma": np.arange(-2, 5.01, 0.2),
 }
 
 gp_param2lda_param = {
     "c": lambda x: 10 ** x,
+    "gamma": lambda x: 10 ** x
 }
 
 output_dir = 'csv_files'
@@ -21,7 +23,7 @@ for k, v in gp_param_dic.items():
     res = pd.DataFrame({
         k: v
     })
-    res['gp_' + k] = res[k].apply(gp_param2lda_param[k])
+    res['transformed_' + k] = res[k].apply(gp_param2lda_param[k])
 
     res.to_csv(output_filename, index=False)
     print(output_filename + " was created")

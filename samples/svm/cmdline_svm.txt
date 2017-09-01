@@ -1,2 +1,2 @@
-svm-train -c $c -q libsvm/iris.scale
-svm-predict libsvm/iris.scale iris.scale.model iris.scale.output > libsvm/output/accuracy_$model_number.txt
+svm-train -c $c -g $gamma -q libsvm/letter.scale.tr
+svm-predict libsvm/letter.scale.val letter.scale.tr.model letter.scale.output > libsvm/output/accuracy_$model_number.txt

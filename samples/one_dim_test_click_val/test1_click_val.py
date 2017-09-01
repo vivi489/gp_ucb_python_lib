@@ -5,6 +5,7 @@ import random
 import numpy as np
 import pandas as pd
 from scipy.special import logit
+from scipy.stats import norm
 
 from gphypo.egmrf_ucb import EGMRF_UCB
 from gphypo.env import BasicEnvironment
@@ -29,12 +30,14 @@ def flip(p):
     return (random.random() < p)
 
 
-class ClickSinEnvironment(BasicEnvironment):
+class ClickOneDimGaussianEnvironment(BasicEnvironment):
     def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
         super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
-        prob = sigmoid(4 * np.sin(x))
+        y = norm.pdf(x, loc=-3, scale=0.8) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
+
+        prob = sigmoid(y)
 
         if calc_gt:
             return logit(prob)
@@ -43,8 +46,23 @@ class ClickSinEnvironment(BasicEnvironment):
             return np.random.binomial(n=n_exp, p=prob)
 
         clicked = int(flip(prob))
-        # print (clicked)
+        return clicked
 
+
+class ClickSinEnvironment(BasicEnvironment):
+    def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
+        super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
+
+    def run_model(self, model_number, x, calc_gt=False, n_exp=1):
+        prob = sigmoid(np.sin(x))
+
+        if calc_gt:
+            return logit(prob)
+
+        if n_exp > 1:
+            return np.random.binomial(n=n_exp, p=prob)
+
+        clicked = int(flip(prob))
         return clicked
 
 
@@ -58,8 +76,8 @@ NORMALIZE_OUTPUT = 'zero_mean_unit_var'
 # NORMALIZE_OUTPUT = None
 MEAN, STD = 0, 1
 
-# reload = False
-reload = True
+reload = False
+# reload = True
 n_iter = 200
 N_EARLY_STOPPING = 100
 
@@ -73,8 +91,7 @@ GAMMA_Y = 0.01 / ((STD * ndim) ** 2)  # weight of adjacent
 GAMMA0 = 0.01 * GAMMA
 IS_EDGE_NORMALIZED = True
 
-
-BURNIN = 0
+BURNIN = True
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'
 
 INITIAL_K = 1
@@ -84,16 +101,17 @@ INITIAL_THETA = 1
 
 output_dir = 'output'
 parameter_dir = os.path.join('param_dir', 'csv_files')
-result_filename = os.path.join(output_dir, 'gaussian_result_2dim.csv')
+result_filename = os.path.join(output_dir, 'gaussian_result_1dim_click.csv')
 
-N_EXP = 10000
+N_EXP = 1000
+ACQUISITION_FUNC = 'ei'
 ########################
 
 ### temporary ###
-# import shutil
-#
-# if os.path.exists(output_dir):
-#     shutil.rmtree(output_dir)
+import shutil
+
+if os.path.exists(output_dir):
+    shutil.rmtree(output_dir)
 # ##################
 
 
@@ -118,25 +136,24 @@ for param_name in param_names:
 
     gp_param2model_param_dic[param_name] = param_df.to_dict()['gp_' + param_name]
 
-# print (param_df)
-print (param_df.index.values[11])
-print (gp_param2model_param_dic['x'])
-
 env = ClickSinEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
                           output_dir=output_dir,
                           reload=reload)
+# env = ClickOneDimGaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
+#                           output_dir=output_dir,
+#                           reload=reload)
 
 # agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=BETA, gt_available=True, my_kernel=kernel)
-agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
+agent = EGMRF_UCB(gp_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
                   is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
                   burnin=BURNIN,
                   normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
-                  initial_k=INITIAL_K, initial_theta=INITIAL_THETA)
+                  initial_k=INITIAL_K, initial_theta=INITIAL_THETA, n_exp=N_EXP, acquisition_func=ACQUISITION_FUNC)
 
 # for i in tqdm(range(n_iter)):
 for i in range(n_iter):
     try:
-        flg = agent.learn(n_exp=N_EXP)
+        flg = agent.learn()
 
         agent.plot(output_dir=output_dir)
 

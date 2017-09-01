@@ -54,7 +54,7 @@ GAMMA_Y = 10 ** (-2)  # weight of adjacen
 
 IS_EDGE_NORMALIZED = True
 
-BURNIN = 0
+BURNIN = True
 
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
@@ -96,7 +96,7 @@ env = FourDimGaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_d
                                  output_dir=output_dir,
                                  reload=reload)
 
-agent = EGMRF_UCB(np.meshgrid(*gp_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
+agent = EGMRF_UCB(gp_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
                   is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=None, burnin=BURNIN,
                   normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC)
 
