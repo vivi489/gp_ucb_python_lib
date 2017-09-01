@@ -28,8 +28,11 @@ def zero_mean_unit_var_normalization(X, mean=None, std=None):
         mean = np.mean(X, axis=0)
     if std is None:
         std = np.std(X, axis=0)
+    try:
+        X_normalized = (X - mean) / std
 
-    X_normalized = (X - mean) / std
+    except ZeroDivisionError:
+        return X, mean, 0
 
     return X_normalized, mean, std
 
