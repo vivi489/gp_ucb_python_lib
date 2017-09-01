@@ -1,4 +1,5 @@
 # coding: utf-8
+import itertools
 import os
 import random
 import warnings
@@ -6,7 +7,7 @@ from operator import itemgetter
 
 import numpy as np
 import scipy
-from matplotlib import cm
+from matplotlib import cm, gridspec
 from matplotlib import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.optimize import fmin_l_bfgs_b
@@ -78,8 +79,8 @@ def create_adjacency_mat(dim_list, calc_sparse=True):
 
 
 class EGMRF_UCB(object):
-    def __init__(self, meshgrid, environment, GAMMA=0.01, GAMMA0=0.01, GAMMA_Y=0.01, ALPHA=0.1, BETA=16,
-                 burnin=0, is_edge_normalized=False, noise=True, n_early_stopping=None,
+    def __init__(self, gp_param_list, environment, GAMMA=0.01, GAMMA0=0.01, GAMMA_Y=0.01, ALPHA=0.1, BETA=16,
+                 burnin=False, is_edge_normalized=False, noise=True, n_early_stopping=None,
                  gt_available=False, normalize_output="zero_mean_unit_var", optimizer="fmin_l_bfgs_b",
                  update_hyperparam_func='pairwise_sampling', initial_k=1, initial_theta=1,
                  acquisition_func='ucb', n_stop_pairwise_sampling=np.inf):
@@ -95,6 +96,8 @@ class EGMRF_UCB(object):
         solution solution (i.e. larger curiosity)
         '''
 
+        self.gp_param_list = gp_param_list
+        meshgrid = np.meshgrid(*gp_param_list)
         self.n_stop_pairwise_sampling = n_stop_pairwise_sampling
         self.GAMMA = GAMMA
         self.GAMMA0 = GAMMA0
@@ -136,18 +139,21 @@ class EGMRF_UCB(object):
         self.ndim_list = mesh_shape[:2][::-1] + mesh_shape[2:]
 
         self.X_grid = self.meshgrid.reshape(self.meshgrid.shape[0], -1).T
+
+        self.X_grid2idx_dic = {tuple(x): i for i, x in enumerate(self.X_grid)}
         self.n_points = self.X_grid.shape[0]
         self.normalized_X_grid = create_normalized_X_grid(self.meshgrid)
 
         assert acquisition_func in ["ucb", "ei", "pi"]
+        self.acquisition_func_name = acquisition_func
         if acquisition_func == 'ucb':
             param_dic = {'beta': BETA}
             self.acquisition_func = UCB(param_dic, d_size=self.X_grid.shape[0])
         elif acquisition_func == 'ei':
-            param_dic = {'par': 0.001}
+            param_dic = {'par': 0.01}
             self.acquisition_func = EI(param_dic)
         else:
-            param_dic = {'par': 0.001}
+            param_dic = {'par': 0.01}
             self.acquisition_func = PI(param_dic)
 
         self.gt_available = gt_available
@@ -181,7 +187,7 @@ class EGMRF_UCB(object):
 
         row_sum_list = - mat_flatten(tau0.sum(axis=0))
         self.diff_list = row_sum_list.max() - row_sum_list
-        print(np.count_nonzero(self.diff_list))
+        print("Edge Num: %s" % np.count_nonzero(self.diff_list))
 
         print(tau0.toarray())
         self.is_edge_normalized = is_edge_normalized
@@ -197,9 +203,10 @@ class EGMRF_UCB(object):
         #         tau0 *= weight_mat  # O.K. for dense mat but N.G. for sparse mat
         #
         #     tau0 = scipy.sparse.csc_matrix(tau0)
+        #     print(tau0.toarray())
 
         self.baseTau0 = tau0
-        print(tau0.toarray())
+
         row_idxes, col_idxes, _ = scipy.sparse.find(self.baseTau0 != 0)
         self.adj_pair_list = [(r, c) for r, c in zip(row_idxes, col_idxes)]
 
@@ -228,22 +235,18 @@ class EGMRF_UCB(object):
             if self.update_hyperparam is not None:
                 self.update_hyperparam()
 
-        # BurnIn
-        if burnin > 0 and not environment.reload:
-            if update_hyperparam_func == 'pairwise_sampling':
-                for _ in range(burnin):
-                    n_points = self.X_grid.shape[0]
-                    rand_idx = np.random.randint(n_points)
-                    self.sample(self.X_grid[rand_idx])
-                    adj_idx = self.get_pairwise_idx(rand_idx)
-                    self.sample(self.X_grid[adj_idx])
+        # Grid-based BurnIn
+        if burnin and not environment.reload:
+            burnin = 2 ** self.ndim
+            quarter_point_list = [[gp_param[len(gp_param) // 4], gp_param[len(gp_param) // 4 * 3]] for gp_param in
+                                  gp_param_list]
 
-            else:
-                for _ in range(burnin):
-                    n_points = self.X_grid.shape[0]
-                    rand_idx = np.random.randint(n_points)
-                    x = self.X_grid[rand_idx]
-                    self.sample(x)
+            for coodinate in itertools.product(*quarter_point_list):
+                coodinate = np.array(coodinate)
+                self.sample(coodinate)
+                if update_hyperparam_func == 'pairwise_sampling':
+                    adj_idx = self.get_pairwise_idx(self.X_grid2idx_dic[tuple(coodinate)])
+                    self.sample(self.X_grid[adj_idx])
 
             print('%d burins has finised!' % burnin)
 
@@ -253,6 +256,8 @@ class EGMRF_UCB(object):
 
             if self.update_hyperparam is not None:
                 self.update_hyperparam()
+
+            self.does_pairwise_sampling = False
 
         self.update()
 
@@ -277,6 +282,7 @@ class EGMRF_UCB(object):
         else:
             gamma_tilda = n_grid * gamma + gamma0  # Normal
 
+        # print ('gamma_tilda: {}'.format(gamma_tilda) )
         mu_tilda = np.array([s * gamma + self.ALPHA * gamma0 for s in sum_grid]) / gamma_tilda
 
         tau1 = -scipy.sparse.diags(gamma_tilda)
@@ -392,12 +398,15 @@ class EGMRF_UCB(object):
         var = var_list.mean()
 
         self.GAMMA_Y = 1 / var / (self.ndim ** 2)
+
         self.GAMMA = self.GAMMA_Y * (2 * self.ndim)
+
         self.GAMMA0 = self.GAMMA * 0.01
 
         print("New GammaY: %s" % self.GAMMA_Y)
         print("New Gamma: %s" % self.GAMMA)
 
+        # if self.normalize_output is None:
         self.ALPHA = np.mean(self.point_info_manager.get_T(excludes_none=True))
         print("New ALPHA: %s" % self.ALPHA)
 
@@ -594,69 +603,115 @@ class EGMRF_UCB(object):
                 ax.scatter(X_seq[-1][0], X_seq[-1][1], X_seq[-1][2], c='m', s=50, marker='o', alpha=1.0)
 
         def plot2d():
-            fig = plt.figure()
-            ax = Axes3D(fig)
-            ucb_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T())
+            acq_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T())
             mu = self.mu.flatten()
+            X, T = self.point_info_manager.get_observed_XT_pair()
+            X_seq, T_seq = self.point_info_manager.X_seq, self.point_info_manager.T_seq
 
             if self.normalize_output:
                 mu = self.point_info_manager.get_unnormalized_value_list(mu)
-                ucb_score = self.point_info_manager.get_unnormalized_value_list(ucb_score)
+                acq_score = self.point_info_manager.get_unnormalized_value_list(acq_score)
 
-            # print(mu, ucb_score)
-            # print (self.meshgrid[0])
-            ax.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float),
-                              mu.reshape(self.meshgrid[0].shape), alpha=0.5,
-                              color='g')
+            if self.acquisition_func_name == 'ucb':
+                fig = plt.figure()
+                ax = Axes3D(fig)
+                ax.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float),
+                                  mu.reshape(self.meshgrid[0].shape), alpha=0.5,
+                                  color='g')
 
-            ax.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float),
-                              ucb_score.reshape(self.meshgrid[0].shape), alpha=0.5, color='y')
+                ax.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float),
+                                  acq_score.reshape(self.meshgrid[0].shape), alpha=0.5, color='y')
 
-            if self.gt_available:
-                ax.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float), self.z, alpha=0.3,
-                                  color='b')
+                if self.gt_available:
+                    ax.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float), self.z, alpha=0.3,
+                                      color='b')
 
-            X, T = self.point_info_manager.get_observed_XT_pair()
-            ax.scatter([x[0] for x in X], [x[1] for x in X], T, c='r', marker='o', alpha=0.5)
+                ax.scatter([x[0] for x in X], [x[1] for x in X], T, c='r', marker='o', alpha=0.5)
 
-            X_seq, T_seq = self.point_info_manager.X_seq, self.point_info_manager.T_seq
+                if self.does_pairwise_sampling:
+                    ax.scatter(X_seq[-2][0], X_seq[-2][1], T_seq[-2], c='m', s=100, marker='o', alpha=1.0)
 
-            if self.does_pairwise_sampling:
-                ax.scatter(X_seq[-2][0], X_seq[-2][1], T_seq[-2], c='m', s=100, marker='o', alpha=1.0)
+                ax.scatter(X_seq[-1][0], X_seq[-1][1], T_seq[-1], c='m', s=50, marker='o', alpha=1.0)
+            else:
+                fig = plt.figure(figsize=(6, 10))
+                fig.subplots_adjust(right=0.8)
 
-            ax.scatter(X_seq[-1][0], X_seq[-1][1], T_seq[-1], c='m', s=50, marker='o', alpha=1.0)
+                upper = fig.add_subplot(2, 1, 1, projection='3d')
+                lower = fig.add_subplot(2, 1, 2, projection='3d')
+
+                upper.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float),
+                                     mu.reshape(self.meshgrid[0].shape), alpha=0.5,
+                                     color='g')
+
+                lower.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float),
+                                     acq_score.reshape(self.meshgrid[0].shape), alpha=0.5, color='y')
+
+                if self.gt_available:
+                    upper.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float), self.z,
+                                         alpha=0.3,
+                                         color='b')
+
+                upper.scatter([x[0] for x in X], [x[1] for x in X], T, c='r', marker='o', alpha=0.5)
+
+                if self.does_pairwise_sampling:
+                    upper.scatter(X_seq[-2][0], X_seq[-2][1], T_seq[-2], c='m', s=100, marker='o', alpha=1.0)
+
+                upper.scatter(X_seq[-1][0], X_seq[-1][1], T_seq[-1], c='m', s=50, marker='o', alpha=1.0)
+
+                # upper.set_zlabel('f(x)', fontdict={'size': 18})
+                # lower.set_zlabel(self.acquisition_func_name.upper(), fontdict={'size': 18})
 
         def plot1d():
-            ucb_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T())
+            acq_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T())
 
             mu = self.mu.flatten()
             if self.normalize_output:
                 mu = self.point_info_manager.get_unnormalized_value_list(mu)
-                ucb_score = self.point_info_manager.get_unnormalized_value_list(ucb_score)
-
-            plt.plot(self.meshgrid[0].astype(float), mu, color='g')
-            plt.plot(self.meshgrid[0].astype(float), ucb_score, color='y')
-
-            if self.gt_available:
-                plt.plot(self.meshgrid[0], self.z, alpha=0.3, color='b')
+                acq_score = self.point_info_manager.get_unnormalized_value_list(acq_score)
 
             X, T = self.point_info_manager.get_observed_XT_pair()
-            plt.scatter(X, T, c='r', s=10, marker='o', alpha=1.0)
-
             X_seq, T_seq = self.point_info_manager.X_seq, self.point_info_manager.T_seq
 
-            if self.does_pairwise_sampling:
-                plt.scatter(X_seq[-2], T_seq[-2], c='m', s=100, marker='o', alpha=1.0)
+            if self.acquisition_func_name == 'ucb':
+                plt.plot(self.meshgrid[0].astype(float), mu, color='g')
+                plt.plot(self.meshgrid[0].astype(float), acq_score, color='y')
+                plt.plot(self.meshgrid[0], self.z, alpha=0.3, color='b')
+                plt.scatter(X, T, c='r', s=10, marker='o', alpha=1.0)
+                if self.does_pairwise_sampling:
+                    plt.scatter(X_seq[-2], T_seq[-2], c='m', s=100, marker='o', alpha=1.0)
+                plt.scatter(X_seq[-1], T_seq[-1], c='m', s=50, marker='o', alpha=1.0)
 
-            plt.scatter(X_seq[-1], T_seq[-1], c='m', s=50, marker='o', alpha=1.0)
+            else:
+                fig = plt.figure()
+                fig.subplots_adjust(left=0.15)
+
+                gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1])
+                upper = plt.subplot(gs[0])
+                lower = plt.subplot(gs[1])
+
+                upper.plot(self.meshgrid[0].astype(float), mu, color='g')
+                lower.plot(self.meshgrid[0].astype(float), acq_score, color='y')
+
+                if self.gt_available:
+                    upper.plot(self.meshgrid[0], self.z, alpha=0.3, color='b')
+
+                upper.scatter(X, T, c='r', s=10, marker='o', alpha=1.0)
+
+                if self.does_pairwise_sampling:
+                    upper.scatter(X_seq[-2], T_seq[-2], c='m', s=100, marker='o', alpha=1.0)
+
+                upper.scatter(X_seq[-1], T_seq[-1], c='m', s=50, marker='o', alpha=1.0)
+
+                upper.set_ylabel('f(x)', fontdict={'size': 18})
+                lower.set_ylabel(self.acquisition_func_name.upper(), fontdict={'size': 18})
 
         if self.ndim in [1, 2, 3]:
             exec("plot{}d()".format(self.ndim))
             out_fn = os.path.join(output_dir, 'res_%04d.png' % self.point_info_manager.update_cnt)
             mkdir_if_not_exist(output_dir)
-
-            plt.savefig(out_fn)
+            plt.savefig(out_fn, transparent=True, bbox_inches='tight', pad_inches=0)
             plt.close()
+
             return
 
 
