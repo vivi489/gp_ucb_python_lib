@@ -4,6 +4,32 @@
 \usepackage{amsmath, amssymb,amsfonts,amsthm,bm}
 \usepackage{booktabs}
 \usepackage{listings}
+\DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
+\newcommand{\code}[1]{\lstinline[basicstyle=\ttfamily\color{green!40!black}]|#1|}
+\newcommand{\units}[1] {\:\text{#1}}%
+\newcommand{\SN}{S$_N$}
+\newcommand{\cyclus}{\textsc{Cyclus}\xspace}
+\newcommand{\Cyclus}{\cyclus}
+\newcommand{\citeme}{\textcolor{red}{CITE}\xspace}
+\newcommand{\cycpp}{\code{cycpp}\xspace}
+\newcommand{\TODO}[1] {{\color{red}\textbf{TODO: #1}}}%
+
+\newcommand{\comment}[1]{{\color{green}\textbf{#1}}}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\GP}{\mathpzc{GP}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\LWR}{\mathrm{LWR}}
+\newcommand{\FR}{\mathrm{FR}}
+\newcommand{\Total}{\mathrm{Total}}
+\newcommand{\argmin}{\mathrm{argmin}}
+\newcommand{\CYCLUS}{\mathrm{Cyclus}}
+\newcommand{\DYMOND}{\mathrm{DYMOND}}
+\newcommand{\I}{\mathbf{I}}
+\newcommand{\K}{\mathbf{K}}
+\newcommand{\stochastic}{\texttt{`stochastic'}\xspace}
+\newcommand{\innerprod}{\texttt{`inner-prod'}\xspace}
+\newcommand{\allflag}{\texttt{`all'}\xspace}
 
 \global\long\def\T#1{#1^{\top}}
 \begin{document}
@@ -54,13 +80,24 @@ where
   \tilde{\mu_i} &=& \dfrac {\gamma \sum _{j}r_{i}^{j}+\gamma_0\alpha _{0}} {\gamma n_{i}+\gamma _{0}} \\
   \tilde{\gamma_i} &=& \gamma n_{i}+\gamma _{0}
 \end{eqnarray}
-$d$: the number of dimensions in paramter space \\
-$N$: the total number of parameter sets ($N=\prod_i^d L_i$: $L_i$ denotes the length of No.$i$ parameters) \\
-$I_{N}$ : n-dimension identiry matrix
 
+\begin{table}[htb]
+\begin{tabular}{ll} \toprule
+Variables & Explanation \\ \toprule
+$\bm{K}$ & adjacency matrix of nodes\\
+$\bm{k}$ & sum of $\bm{K}$ per row or per col($\bm{k}_{i}= \sum_i K_{ij} = \sum_j K_{ij}$)\\
+$d$ & dimension of search space \\
+$l_i$ & length of nodes in $i$-th dimension \\
+$N=\prod_i l_i$ & total number of nodes \\
+$\bm{I}_N$ & identity matrix whose dimension is $N$\\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{eqnarray}
-  A &=& \begin{pmatrix}
+  \bm{A} &=& \bm{B} - \bm{K} + \gamma_y diag(\bm{k})\\
+  \bm{A'} &=& \bm{B} - \bm{K} + 2d\gamma_y\bm{I}_{N} \\
+   &=&\begin{pmatrix}
   2d\gamma_y + \tilde{\gamma_1} & -\gamma_y   & \cdots & -\gamma_y   & \cdots &\\
   -\gamma_y & 2d\gamma_y + \tilde{\gamma_2} &\cdots &  \cdots &  -\gamma_y  &  \\
   \vdots&\vdots& \ddots &&& \\
@@ -68,7 +105,7 @@ $I_{N}$ : n-dimension identiry matrix
   &-\gamma_y&&& \ddots &&& \\
   &&\cdots&&& 2d\gamma_y + \tilde{\gamma_N} \\
   \end{pmatrix} \\
-  B &=& \tilde {\gamma_i} I_{N} \\
+  \bm{B} &=& \tilde {\gamma_i} \bm{I}_{N} \\
     &=& \begin{pmatrix}
       \tilde{\gamma_1} & 0 & \cdots & \mbox{\Huge O}\\
       0 & \tilde{\gamma_2} & && \\
@@ -78,14 +115,18 @@ $I_{N}$ : n-dimension identiry matrix
 \end{eqnarray}
   %  \left(\bm{y} \\ \tilde{\bm{\mu}} \right)
 
+
+
+
 $\bm{A}=\T{\bm{D}} \bm{D}$, $\bm{z}=\bm{D}\bm{y}$
 
 \begin{eqnarray}
   p( \bm{r}, \bm{y}| \gamma, \gamma_y, \gamma_0, \alpha)
-    &=& C \exp  \left( - \sum_i \left( \dfrac {\gamma_y} {2} \sum_{i,j\in{J_i}} \left(y_i - y_j \right)^2
+    &=& C \exp  \left( - \sum_i \left( \dfrac {\gamma_y} {2} \sum_{j\in{J_i}}
+    \dfrac{\left(y_i - y_j \right)^2}{2}
       + \dfrac {\tilde{\gamma_i}} {2} \left( y_{i} - \tilde {\mu_i} \right) ^{2} \right) \right)\\
   E(\bm{y})
-    &=& \sum_i \left( \dfrac {\gamma_y} {2} \sum_{i,j\in{J_i}} \left(y_i - y_j \right)^2
+    &=& \sum_i \left( \dfrac {\gamma_y} {2} \sum_{j\in{J_i}} \dfrac{\left(y_i - y_j \right)^2}{2}
       + \dfrac {\tilde{\gamma_i}} {2} \left( y_{i} - \tilde {\mu_i} \right) ^{2} \right)\\
   2E(\bm{y})
     &=& \begin{pmatrix} \bm{y} ^\top  \tilde{\bm{\mu}}^\top \end{pmatrix}
@@ -128,6 +169,24 @@ $\bm{A}=\T{\bm{D}} \bm{D}$, $\bm{z}=\bm{D}\bm{y}$
            &=& \gamma \bm{A}_2 - \gamma^2 \bm{A}_2 (\gamma_y \bm{A}_1 + \gamma \bm{A}_2) \bm{A}_2
 \end{eqnarray}
 
+
+\subsection{Hyperparamter of GMRF estimation}
+\subsubsection{Pairwise Sampling}
+\begin{eqnarray*}
+\gamma_y &=& \dfrac{1}{td^2} \sum_t (r^t - {r'}^t)^2 \\
+\gamma &=& 2d\gamma_y \\
+\gamma_0 &=& 0.01 \gamma \\
+\alpha &=& \dfrac{1}{t} \sum_t (r^t + {r'}^t) \\
+\end{eqnarray*}
+
+\begin{table}[htb]
+\begin{tabular}{cl}
+${r}^t$&the observed value at time $t$ \\
+${r'}^t$&the one of the adjacent observed value at time $t$\\
+\end{tabular}
+\end{table}
+
+\subsubsection{Maximizing the marginalized loglikelihood}
 In order to simplify the problem,
 we assume $\gamma_0=0$, then $\tilde{\bm{\mu}_i} = \dfrac {\sum _{j}r_{i}^{j}} {n_{i}}$ becomes $const$.
 
@@ -176,13 +235,61 @@ we assume $\gamma_0=0$, then $\tilde{\bm{\mu}_i} = \dfrac {\sum _{j}r_{i}^{j}} {
         + \frac{k-1}{\gamma_y} - \frac{1}{\theta} \\
 \end{eqnarray}
 
-\subsection{Binary Value Reward pattern}
 
+
+\section{Real Value Reward pattern}
+\subsection{Acquisition Functions}
+The predicted mean is $\mu(y)$ and the predicted standard deviation is $\sigma(y)$
+
+\subsubsection{Upper Confidence Bounce (UCB)}
+\begin{eqnarray}
+a_{\rm UCB}(y) = \mu(y) + \sqrt{\beta^t} \sigma(y)
+\end{eqnarray}
+
+\subsubsection{Thompson Sampling}
+\begin{eqnarray}
+% X \sim \mathcal{N}(\mu(y),\,\sigma^{y})
+a_{\rm TS}(y) = \mathcal{N}(\mu(y),\,\sigma(y))
+\end{eqnarray}
+
+
+
+\subsubsection{Probability Improvement (PI)}
+\begin{eqnarray}
+a_{\rm PI}(y) = \Phi(z)
+\end{eqnarray}
+where $z=\dfrac{\mu(y)-r^{\rm best}-\xi}{\sigma(y)}$, $\xi$ is hyperparamter that prevents baysian optimization from getting too greedy. $\Phi$ returns Gaussian cumulative density function.
+
+\subsubsection{Expected Improvement (EI)}
+\begin{eqnarray}
+a_{\rm EI}(y) = (\mu(y)-r^{\rm best}-\xi)\Phi(z) + \sigma(y)\phi(z)
+\end{eqnarray}
+$\xi$ is said to work well when it is set 0.01. $\phi$ returns Gaussian probability density function.
+
+
+\section{Binary Value Reward pattern}
+\begin{eqnarray}
+  p(x) &=& \dfrac{n_1 + \alpha_1} {n_1 + \alpha_1 + n_0 + \alpha_0} \\
+  f(x) &=& \log \left(\dfrac{p(x)}{1-p(x)} \right)
+\end{eqnarray}
+
+$n_1$ denotes the number of click, $n_0$ denotes the number of NOT click
+
+\begin{table}[htb]
+\begin{tabular}{ll} \toprule
+Variables & Explanation \\ \toprule
+$n_1$ & the number of click\\
+$n_0$ & the number of NOT click \\
+$\alpha_1, \alpha_0$ & prior\\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Implementation}
 \subsection{Adjacency Matrix Creation}
 In order to create matrix$A$, an adjacency matrix is necessary.
 An adjacency matrix can be calculated using Kronecker product.
+
 
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
 import scipy.sparse

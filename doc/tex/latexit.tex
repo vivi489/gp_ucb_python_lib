@@ -8,7 +8,7 @@ p\left( \bm{r} ,y | \alpha, \gamma_0, \gamma \right) &= p\left( y | \alpha, \gam
 
 
 \log p( \bm{r}, \bm{y}| \gamma, \gamma_y, \gamma_0, \alpha)
-  &\propto \sum_i \left( \dfrac {\gamma_y} {2} \sum_{i,j\in{J_i}} \left(y_i - y_j \right)^2
+  &\propto \sum_i \left( \dfrac {\gamma_y} {2} \sum_{j\in{J_i}} \dfrac {(y_i - y_j)^2} {2}
     + \dfrac {\tilde{\gamma_i}} {2} \left( y_{i} - \tilde {\mu_i} \right) ^{2} \right) \\
   &= \begin{pmatrix} \bm{y} ^\top  \tilde{\bm{\mu}}^\top \end{pmatrix}
         \begin{pmatrix}
@@ -20,4 +20,22 @@ p\left( \bm{r} ,y | \alpha, \gamma_0, \gamma \right) &= p\left( y | \alpha, \gam
           \tilde{\bm{\mu}}
         \end{pmatrix} \\
   &= (\T{\bm{y} } - \T{\tilde{\bm{\mu}}}\bm{B} \bm{A}^{-1}) \bm{A} (\bm{y}  - \bm{A}^{-1} \bm{B} \tilde{\bm{\mu}})
-    + \tilde{\bm{\mu}}^\top (\bm{B} - \bm{B} \bm{A}^{-1} \bm{B} ) \tilde{\bm{\mu}}
+    + \tilde{\bm{\mu}}^\top (\bm{B} - \bm{B} \bm{A}^{-1} \bm{B} ) \tilde{\bm{\mu}} \\
+  &\approx (\T{\bm{y} } - \T{\tilde{\bm{\mu}}}\bm{B} \bm{A'}^{-1}) \bm{A'} (\bm{y}  - \bm{A'}^{-1} \bm{B} \tilde{\bm{\mu}})
+    + \tilde{\bm{\mu}}^\top (\bm{B} - \bm{B} \bm{A'}^{-1} \bm{B} ) \tilde{\bm{\mu}}
+
+    
+// Kernel
+K(\bm{x}_i,\bm{x}_j)=\exp \left(-\frac{||\bm{x}_i-\bm{x}_j||^2}{\sigma^2} \right)
+
+f \sim \GP(f|m, k_\theta)
+
+\mathcal{D}_{1:n} = \{{\bm{x}_i, y_i}\}^n_{i=1}
+
+
+p\left( \bm{r}, \bm{y} | \gamma, \gamma_y \right)
+   &= C \left( \prod_{i=1}^n \exp \left( -\dfrac {\gamma} {2} \left( y_i - r_i \right) ^{2}\right)\right)
+  \left( \prod_{i=1}^{n-1} \exp \left( -\dfrac {\gamma_y} {2} \left( y_{i+1} - y_i \right) ^{2}\right)\right)
+
+
+\dfrac {1} {n_i} \sum^{n_i}_{j=1} r_i^j
