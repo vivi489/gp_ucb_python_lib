@@ -15,6 +15,7 @@ def unique_rows(a):
     reorder = np.argsort(order)
 
     a = a[order]
+    a = a.astype(np.float64)
     diff = np.diff(a, axis=0)
     ui = np.ones(len(a), 'bool')
     ui[1:] = (diff != 0).any(axis=1)

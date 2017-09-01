@@ -64,7 +64,6 @@ class BasicEnvironment(object):
         if get_ground_truth:
             for j in range(x.shape[0]):
                 for i, (key, gp2model) in enumerate(self.gp_param2model_param_dic.items()):
-                    # print (gp2model)
                     res[j, i] = gp2model[str(x[j, i])]
 
         else:
@@ -126,7 +125,7 @@ class Cmdline_Environment(BasicEnvironment):
     def get_result(self):
         pass
 
-    def run_model(self, model_number, x):
+    def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         my_param_dic = {k: one_x for k, one_x in zip(self.param_names, list(x))}
         my_param_dic['model_number'] = "%04d" % model_number
 
