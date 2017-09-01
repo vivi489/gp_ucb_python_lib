@@ -219,7 +219,7 @@ class EGMRF_UCB(object):
                 print(x, t, row.n_exp)
                 n_exp = int(float(row.n_exp))
                 if n_exp > 1:
-                    n1 = self.environment.sample(x, n_exp=n_exp)
+                    n1 = t
                     n0 = n_exp - n1
                     t = transform_click_val2real_val(n0, n1)
                     if type(t) == list or type(t) == np.ndarray:
