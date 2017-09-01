@@ -86,6 +86,8 @@ C(1, constant_value_bounds="fixed") * RBF(2, length_scale_bounds="fixed") + Whit
 ### libsvm optimization
 Train and test dataset is the same iris dataset. (not good)
 
+Dataset for libsvm can be downloaded from [here](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass.html)
+
 ![sample](_static/svm_anim.gif)
 
 ### lda optimization
