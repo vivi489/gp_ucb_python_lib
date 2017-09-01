@@ -97,6 +97,7 @@ def run_gmrf(gmrf_paramter_filename, MyEnvironment):
     template_parameter_filename = gmrf_parameter_dic['template_parameter_filename']
     reload = gmrf_parameter_dic['reload']
     n_iter = gmrf_parameter_dic['n_iter']
+    n_exp = gmrf_parameter_dic['n_exp']
     beta = gmrf_parameter_dic['beta']
     ALPHA = gmrf_parameter_dic['ALPHA']
     GAMMA = gmrf_parameter_dic['GAMMA']
@@ -152,7 +153,7 @@ def run_gmrf(gmrf_paramter_filename, MyEnvironment):
                       BETA=beta,
                       is_edge_normalized=IS_EDGE_NORMALIZED, n_early_stopping=N_EARLY_STOPPING,
                       burnin=BURNIN,
-                      normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC)
+                      normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC, n_exp=n_exp)
 
     for i in tqdm(range(n_iter)):
         try:

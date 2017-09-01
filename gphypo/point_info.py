@@ -70,14 +70,11 @@ class PointInfoManager(object):
             return real_T[observed_idx]
         return real_T
 
-    def get_observed_idx(self):
+    def get_observed_XT_pair(self, gets_idx=False):
         real_T = self.get_real_T()
         observed_idx = [i for i, t in enumerate(real_T) if t is not None]
-        return observed_idx
-
-    def get_observed_XT_pair(self):
-        real_T = self.get_real_T()
-        observed_idx = [i for i, t in enumerate(real_T) if t is not None]
+        if gets_idx:
+            return self.X_grid[observed_idx], real_T[observed_idx], observed_idx
         return self.X_grid[observed_idx], real_T[observed_idx]
 
     def set_normalized_params(self):
@@ -91,9 +88,7 @@ class PointInfoManager(object):
 
     def get_normalized_T(self, excludes_none=True):
         global observed_normalized_T
-        _, observed_real_T = self.get_observed_XT_pair()
-        normalized_T = np.array([None] * self.n_points)
-        observed_idx = self.get_observed_idx()
+        _, observed_real_T, observed_idx = self.get_observed_XT_pair(gets_idx=True)
 
         if self.normalize_output == 'zero_mean_unit_var':
             observed_normalized_T, _, _ = normalization.zero_mean_unit_var_normalization(observed_real_T)
@@ -103,7 +98,7 @@ class PointInfoManager(object):
 
         if excludes_none:
             return observed_normalized_T
-
+        normalized_T = np.array([None] * self.n_points)
         normalized_T[observed_idx] = observed_normalized_T
 
         return normalized_T

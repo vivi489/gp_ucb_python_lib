@@ -23,7 +23,7 @@ class EI(BaseAcquisitionFunction):
         observation_list = self.preprocess_observation_list(observation_list)
         par = self.param_dic["par"]
         if len(observation_list) == 0:
-            z = (1 - mu - par) / sigma
+            z = (mu - par) / sigma
         else:
             z = (mu - max(observation_list) - par) / sigma
 

@@ -83,7 +83,7 @@ class EGMRF_UCB(object):
                  burnin=False, is_edge_normalized=False, noise=True, n_early_stopping=None,
                  gt_available=False, normalize_output="zero_mean_unit_var", optimizer="fmin_l_bfgs_b",
                  update_hyperparam_func='pairwise_sampling', initial_k=1, initial_theta=1,
-                 acquisition_func='ucb', n_stop_pairwise_sampling=np.inf):
+                 acquisition_func='ucb', n_stop_pairwise_sampling=np.inf, n_exp=1):
 
         '''
         meshgrid: Output from np.methgrid.
@@ -106,11 +106,12 @@ class EGMRF_UCB(object):
 
         self.environment = environment
         self.optimizer = optimizer
+        self.n_exp = n_exp
 
         self.does_pairwise_sampling = False
         assert update_hyperparam_func in [None, "pairwise_sampling", "simple_loglikelihood", "loglikelihood"]
         if update_hyperparam_func == 'pairwise_sampling':
-            self.update_hyperparam = self.update_hyper_params_by_pairwise_sampling
+            self.update_hyperparam = self.update_hyper_params_by_adj_idxes
             self.does_pairwise_sampling = True
         elif update_hyperparam_func == 'simple_loglikelihood':
             self.update_hyperparam = self.update_hyperparams_by_simple_loglikelihood
@@ -160,14 +161,11 @@ class EGMRF_UCB(object):
 
         # Calculate ground truth (self.z)
         if self.ndim == 1 and gt_available:
-            # self.z = self.environment.sample(self.X_grid.flatten(), get_ground_truth=True)
             self.z = self.environment.sample(self.X_grid, get_ground_truth=True)
         elif self.ndim == 2 and gt_available:
             nrow, ncol = self.meshgrid.shape[1:]
-            # self.z = self.environment.sample(self.X_grid.T, get_ground_truth=True).reshape(nrow, ncol)
             self.z = self.environment.sample(self.X_grid, get_ground_truth=True).reshape(nrow, ncol)
         elif self.ndim == 3 and gt_available:
-            # self.z = self.environment.sample(self.X_grid.T, get_ground_truth=True)
             self.z = self.environment.sample(self.X_grid, get_ground_truth=True)
         else:
             self.z = None
@@ -192,7 +190,8 @@ class EGMRF_UCB(object):
         print(tau0.toarray())
         self.is_edge_normalized = is_edge_normalized
 
-        # if is_edge_normalized: # Not necessary(?)
+        # # This changes the edge weight. This seems to be not so effective(Result does not change)
+        # if is_edge_normalized:
         #     weight_arr = np.matrix(self.ndim * 2 / row_sum_list)
         #     weight_mat = weight_arr.T.dot(weight_arr)
         #     # weight_mat = np.sqrt(weight_arr.T.dot(weight_arr))
@@ -212,7 +211,6 @@ class EGMRF_UCB(object):
 
         # Reload past results if exits
         if environment.reload:
-            # print (np.float64(environment.result_df.head(1).gp_x))
             for key, row in environment.result_df.iterrows():
                 x = row[environment.gp_param_names].as_matrix()
                 t = float(row['output'])
@@ -225,7 +223,6 @@ class EGMRF_UCB(object):
                     if type(t) == list or type(t) == np.ndarray:
                         t = t[0]
                     self.point_info_manager.update(x, {t: n_exp})
-
                 else:
                     self.point_info_manager.update(x, {t: 1})
 
@@ -278,7 +275,8 @@ class EGMRF_UCB(object):
         sum_grid = self.point_info_manager.get_sum_grid()
 
         if self.is_edge_normalized:
-            gamma_tilda = n_grid * gamma + gamma0 + gamma_y * self.diff_list.flatten()  # corner will be treated as center nodes
+            # corner will be treated as center nodes. This is explained as A -> A' in PPTX file.
+            gamma_tilda = n_grid * gamma + gamma0 + gamma_y * self.diff_list.flatten()
         else:
             gamma_tilda = n_grid * gamma + gamma0  # Normal
 
@@ -299,24 +297,18 @@ class EGMRF_UCB(object):
         adj_idxes = scipy.sparse.find(self.baseTau0[idx] != 0)[1]
         return random.choice(adj_idxes)
 
-    def learn(self, n_exp=None):
+    def learn(self):
         T = self.point_info_manager.get_T()
         grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T))
 
-        if n_exp:
-            continue_flg = self.sample_from_click(self.X_grid[grid_idx], n_exp)
-        else:
-            continue_flg = self.sample(self.X_grid[grid_idx])
+        continue_flg = self.sample(self.X_grid[grid_idx])
 
         if not continue_flg:
             return False
 
         if self.does_pairwise_sampling:
             adj_idx = self.get_pairwise_idx(grid_idx)
-            if n_exp:
-                continue_flg = self.sample_from_click(self.X_grid[adj_idx], n_exp)
-            else:
-                continue_flg = self.sample(self.X_grid[adj_idx])
+            continue_flg = self.sample(self.X_grid[adj_idx])
 
             if not continue_flg:
                 return False
@@ -328,32 +320,20 @@ class EGMRF_UCB(object):
         return True
 
     def sample(self, x):
-        t = self.environment.sample(x)
-        if type(t) == list or type(t) == np.ndarray:
-            t = t[0]
+        if self.n_exp > 2:
+            n1 = self.environment.sample(x, n_exp=self.n_exp)
+            n0 = self.n_exp - n1
+            t = transform_click_val2real_val(n0, n1)
+            if type(t) == list or type(t) == np.ndarray:
+                t = t[0]
 
-        self.point_info_manager.update(x, {t: 1})
-
-        if t <= self.bestT:
-            self.cnt_since_bestT += 1
+            self.point_info_manager.update(x, {t: self.n_exp})
         else:
-            self.bestT = t
-            self.bestX = x
-            self.cnt_since_bestT = 0
+            t = self.environment.sample(x)
+            if type(t) == list or type(t) == np.ndarray:
+                t = t[0]
 
-        if self.cnt_since_bestT > self.n_early_stopping:
-            return False
-
-        return True
-
-    def sample_from_click(self, x, n_exp):
-        n1 = self.environment.sample(x, n_exp=n_exp)
-        n0 = n_exp - n1
-        t = transform_click_val2real_val(n0, n1)
-        if type(t) == list or type(t) == np.ndarray:
-            t = t[0]
-
-        self.point_info_manager.update(x, {t: n_exp})
+            self.point_info_manager.update(x, {t: 1})
 
         if t <= self.bestT:
             self.cnt_since_bestT += 1
@@ -385,7 +365,7 @@ class EGMRF_UCB(object):
         if self.update_hyperparam is not None and self.point_info_manager.update_cnt > n_start_opt_hyper_param:
             self.update_hyperparam()
 
-    def update_hyper_params_by_pairwise_sampling(self):
+    def update_hyper_params_by_adj_idxes(self):
         T = self.point_info_manager.get_T()
         var_list = []
 
@@ -406,7 +386,6 @@ class EGMRF_UCB(object):
         print("New GammaY: %s" % self.GAMMA_Y)
         print("New Gamma: %s" % self.GAMMA)
 
-        # if self.normalize_output is None:
         self.ALPHA = np.mean(self.point_info_manager.get_T(excludes_none=True))
         print("New ALPHA: %s" % self.ALPHA)
 
@@ -712,9 +691,5 @@ class EGMRF_UCB(object):
             plt.savefig(out_fn, transparent=True, bbox_inches='tight', pad_inches=0)
             plt.close()
 
-            return
-
-
         else:
             print("Sorry... Plotting only supports 1 dim or 2 dim.")
-            return
