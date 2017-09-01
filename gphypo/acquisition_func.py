@@ -10,6 +10,9 @@ class BaseAcquisitionFunction(object):
     def __init__(self, param_dic):
         self.param_dic = param_dic
 
+    def preprocess_observation_list(self, observation_list):
+        return [x for x in observation_list if x is not None]  # remove None
+
     @abc.abstractmethod
     def compute(self, mu, sigma, observation_list):
         pass
@@ -17,6 +20,7 @@ class BaseAcquisitionFunction(object):
 
 class EI(BaseAcquisitionFunction):
     def compute(self, mu, sigma, observation_list):
+        observation_list = self.preprocess_observation_list(observation_list)
         par = self.param_dic["par"]
         if len(observation_list) == 0:
             z = (1 - mu - par) / sigma
@@ -29,6 +33,7 @@ class EI(BaseAcquisitionFunction):
 
 class PI(BaseAcquisitionFunction):
     def compute(self, mu, sigma, observation_list):
+        observation_list = self.preprocess_observation_list(observation_list)
         par = self.param_dic["par"]
         inc_val = 0
         if len(observation_list) > 0:
