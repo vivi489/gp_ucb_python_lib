@@ -7,6 +7,8 @@ from operator import itemgetter
 
 import numpy as np
 import scipy
+import pandas as pd
+
 from matplotlib import cm, gridspec
 from matplotlib import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -553,6 +555,14 @@ class EGMRF_UCB(object):
                 fmin_l_bfgs_b(obj_func, initial_theta, approx_grad=True, bounds=bounds)
 
         return theta_opt, func_min
+
+    def save_mu_sigma_csv(self, outfn="mu_sigma.csv"):
+        df = pd.DataFrame(self.X_grid, columns=self.environment.gp_param_names)
+        df['mu'] = self.mu
+        df['sigma'] = self.sigma
+
+        df.to_csv(outfn, index=False)
+        print('%s was saved!' % outfn)
 
     def plot(self, output_dir):
         def plot3d():

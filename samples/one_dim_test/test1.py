@@ -40,7 +40,6 @@ class OneDimGaussianEnvironment(BasicEnvironment):
         super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
-
         assert x.ndim in [1, 2]
 
         y = norm.pdf(x, loc=-3, scale=0.8) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
@@ -77,7 +76,7 @@ INITIAL_K = 10
 INITIAL_THETA = 10
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
-ACQUISITION_FUNC = 'ucb' # 'ei'
+ACQUISITION_FUNC = 'ucb'  # 'ei'
 
 output_dir = 'output_ucb'
 parameter_dir = os.path.join('param_dir', 'csv_files')
@@ -89,7 +88,6 @@ result_filename = os.path.join(output_dir, 'gaussian_result_1dim.csv')
 
 kernel = C(1, constant_value_bounds="fixed") \
          * RBF(2, length_scale_bounds="fixed")  # works well, but not so sharp
-
 
 # kernel = Matern(nu=2.5)
 
@@ -144,6 +142,8 @@ def main():
             flg = agent.learn()
 
             agent.plot(output_dir=output_dir)
+
+            agent.save_mu_sigma_csv()
 
             if flg == False:
                 print("Early Stopping!!!")

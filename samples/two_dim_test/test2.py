@@ -142,6 +142,7 @@ def main():
         try:
             flg = agent.learn()
             agent.plot(output_dir=output_dir)
+            agent.save_mu_sigma_csv()
 
             if flg == False:
                 print("Early Stopping!!!")
