@@ -14,5 +14,5 @@ setup(
     url='https://github.com/LittleWat/gp_ucb_python_lib',
     keywords='gp_ucb hyper_parameter_optimization python',
     packages=find_packages(exclude=('tests', 'docs')),
-    install_requires=['sklearn', 'tqdm', 'scikit-sparse'],
+    install_requires=['scikit-learn>=0.18', 'tqdm', 'scikit-sparse'],
 )
