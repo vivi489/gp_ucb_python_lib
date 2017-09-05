@@ -10,6 +10,7 @@ __pycache__
 *param*.csv
 *.png
 csv_files
+*.pyc
 
 build
 dist
