@@ -6,9 +6,13 @@ import warnings
 from operator import itemgetter
 
 import numpy as np
-import scipy
 import pandas as pd
-
+import scipy
+from gphypo import normalization
+from gphypo.acquisition_func import UCB, EI, PI
+from gphypo.point_info import PointInfoManager
+from gphypo.transform_val import transform_click_val2real_val
+from gphypo.util import mkdir_if_not_exist
 from matplotlib import cm, gridspec
 from matplotlib import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -16,12 +20,6 @@ from scipy.optimize import fmin_l_bfgs_b
 from scipy.sparse import coo_matrix
 from scipy.spatial.distance import pdist, squareform
 from sksparse.cholmod import cholesky
-
-from gphypo import normalization
-from gphypo.acquisition_func import UCB, EI, PI
-from gphypo.point_info import PointInfoManager
-from gphypo.transform_val import transform_click_val2real_val
-from gphypo.util import mkdir_if_not_exist
 
 
 def adj_metric(u, v):
@@ -296,14 +294,14 @@ class EGMRF_UCB(object):
         T = self.point_info_manager.get_T()
         grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T))
 
-        continue_flg = self.sample(self.X_grid[grid_idx])
+        continue_flg = self.sample(self.X_grid[grid_idx], self.n_exp)
 
         if not continue_flg:
             return False
 
         if self.does_pairwise_sampling:
             adj_idx = self.get_pairwise_idx(grid_idx)
-            continue_flg = self.sample(self.X_grid[adj_idx])
+            continue_flg = self.sample(self.X_grid[adj_idx], self.n_exp)
 
             if not continue_flg:
                 return False
@@ -314,8 +312,31 @@ class EGMRF_UCB(object):
         self.update()
         return True
 
-    def sample(self, x):
-        if self.n_exp > 2:
+    # TODO
+    def learn_from_clicks(self, ratio_csv_fn='ratio.csv', n_total_exp=10000):
+
+        ratio_df = pd.read_csv(ratio_csv_fn)
+
+        for key, row in ratio_df.iterrows():
+            x = row[self.environment.gp_param_names].as_matrix()
+            t = float(row['output'])
+            print(x, t, row.n_exp)
+            n_exp = int(float(row.ratio) * n_total_exp)
+            assert n_exp > 1
+            n1 = t
+            n0 = n_exp - n1
+            t = transform_click_val2real_val(n0, n1)
+            if type(t) == list or type(t) == np.ndarray:
+                t = t[0]
+            self.point_info_manager.update(x, {t: n_exp})
+
+        print("Loaded csv.")
+
+        self.update()
+        return True
+
+    def sample(self, x, n_exp):
+        if n_exp > 2:
             n1 = self.environment.sample(x, n_exp=self.n_exp)
             n0 = self.n_exp - n1
             t = transform_click_val2real_val(n0, n1)
