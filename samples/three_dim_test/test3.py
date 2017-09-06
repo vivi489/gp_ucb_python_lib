@@ -3,13 +3,14 @@ import os
 
 import numpy as np
 import pandas as pd
-from scipy.stats import multivariate_normal
-from tqdm import tqdm
-
-# from gphypo.gpucb import GPUCB
-from gphypo.egmrf_ucb import EGMRF_UCB
 from gphypo.env import BasicEnvironment
-from gphypo.util import mkdir_if_not_exist, plot_loss
+from gphypo.gmrf_bo import GMRF_BO
+from gphypo.gpucb import GPUCB
+from gphypo.egmrf_ucb import EGMRF_UCB
+from gphypo.util import mkdir_if_not_exist, plot_1dim
+from scipy.stats import multivariate_normal
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, Matern
+from tqdm import tqdm
 
 
 # from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel as C, Matern
@@ -19,8 +20,8 @@ from gphypo.util import mkdir_if_not_exist, plot_loss
 # OFFSET = 10
 
 class ThreeDimGaussianEnvironment(BasicEnvironment):
-    def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
-        super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+        super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gr=False, n_exp=1):
         mean1 = [3, 3, 3]
@@ -41,8 +42,8 @@ class ThreeDimGaussianEnvironment(BasicEnvironment):
 
 
 class ThreeDimEnvironment(BasicEnvironment):
-    def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
-        super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+        super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gr=False, n_exp=1):
         mean1 = [3, 3]
@@ -73,8 +74,8 @@ ndim = 3
 
 BETA = 5  ## sqrt(BETA) controls the ratio between ucb and mean
 
-# NORMALIZE_OUTPUT = 'zero_mean_unit_var'
-NORMALIZE_OUTPUT = 'zero_one'
+NORMALIZE_OUTPUT = 'zero_mean_unit_var'
+# NORMALIZE_OUTPUT = 'zero_one'
 # NORMALIZE_OUTPUT = None
 
 reload = False
@@ -95,12 +96,23 @@ UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 INITIAL_K = 10
 INITIAL_THETA = 10
 
-# kernel = Matern(2.5)
+kernel = Matern(nu=2.5)
+# kernel = C(1) * RBF(2)  # works well, but not so sharp
 
-# output_dir = 'output_gmrf_mean0var1_easy'
-output_dir = 'output_gmrf_min0max1_easy'
+output_dir = 'output'
+
 parameter_dir = os.path.join('param_dir', 'csv_files')
 result_filename = os.path.join(output_dir, 'gaussian_result_3dim.csv')
+
+ACQUISITION_FUNC = 'ucb'  # 'ei'
+ACQUISITION_PARAM_DIC = {
+    'beta': 5
+}
+
+# ACQUISITION_FUNC = 'ei' # 'ei' or 'pi'
+# ACQUISITION_PARAM_DIC = {
+#     'par': 0.
+# }
 
 ########################
 
@@ -118,31 +130,31 @@ mkdir_if_not_exist(output_dir)
 
 param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
 
-gp_param2model_param_dic = {}
+bo_param2model_param_dic = {}
 
-gp_param_list = []
+bo_param_list = []
 for param_name in param_names:
     param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
-    gp_param_list.append(param_df[param_name].values)
+    bo_param_list.append(param_df[param_name].values)
 
     param_df.set_index(param_name, inplace=True)
 
-    gp_param2model_param_dic[param_name] = param_df.to_dict()['gp_' + param_name]
+    bo_param2model_param_dic[param_name] = param_df.to_dict()['bo_' + param_name]
 
-# env = ThreeDimEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
+# env = ThreeDimEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, result_filename=result_filename,
 #                           output_dir=output_dir,
 #                           reload=reload)
-env = ThreeDimGaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
+env = ThreeDimGaussianEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, result_filename=result_filename,
                                   output_dir=output_dir,
                                   reload=reload)
 
-# agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=BETA, gt_available=True, my_kernel=kernel)
 
-agent = EGMRF_UCB(gp_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
-                  is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
-                  burnin=BURNIN,
-                  normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
-                  initial_k=INITIAL_K, initial_theta=INITIAL_THETA)
+agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
+                is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
+                burnin=BURNIN,
+                normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
+                initial_k=INITIAL_K, initial_theta=INITIAL_THETA, acquisition_func=ACQUISITION_FUNC,
+                acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
 for i in tqdm(range(n_iter)):
     try:
@@ -150,6 +162,7 @@ for i in tqdm(range(n_iter)):
 
         agent.plot(output_dir=output_dir)
 
+        agent.save_mu_sigma_csv()
         if flg == False:
             print("Early Stopping!!!")
             print(agent.bestX)
@@ -164,4 +177,4 @@ for i in tqdm(range(n_iter)):
         print("Learnig process was forced to stop!")
         break
 
-plot_loss(agent.point_info_manager.T_seq, 'reward.png')
+plot_1dim(agent.point_info_manager.T_seq, 'reward.png')

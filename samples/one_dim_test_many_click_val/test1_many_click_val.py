@@ -7,9 +7,9 @@ import pandas as pd
 from scipy.special import logit
 from scipy.stats import norm
 
-from gphypo.egmrf_ucb import EGMRF_UCB
 from gphypo.env import BasicEnvironment
-from gphypo.util import mkdir_if_not_exist, plot_loss
+from gphypo.gmrf_bo import GMRF_BO
+from gphypo.util import mkdir_if_not_exist, plot_1dim
 
 
 # from sklearn.gaussian_process.kernels import ConstantKernel as C, Matern
@@ -31,31 +31,11 @@ def flip(p):
 
 
 class ClickOneDimGaussianEnvironment(BasicEnvironment):
-    def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
-        super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
-
-
-    def run_model(self, model_number, x, calc_gt=False, n_exp=1):
-        y = norm.pdf(x, loc=-3, scale=0.8) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
-
-        prob = sigmoid(y)
-
-        if calc_gt:
-            return logit(prob)
-
-        if n_exp > 1:
-            return np.random.binomial(n=n_exp, p=prob)
-
-        clicked = int(flip(prob))
-        return clicked
-
-
-class ClickSinEnvironment(BasicEnvironment):
-    def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
-        super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+        super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
-        prob = sigmoid(np.sin(x))
+        prob = norm.pdf(x, loc=-3, scale=0.8) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5) / 3
 
         if calc_gt:
             return logit(prob)
@@ -105,7 +85,11 @@ parameter_dir = os.path.join('param_dir', 'csv_files')
 result_filename = os.path.join(output_dir, 'gaussian_result_1dim_click.csv')
 
 N_EXP = 1000
-ACQUISITION_FUNC = 'ei'
+
+ACQUISITION_FUNC = 'ucb'
+ACQUISITION_PARAM_DIC = {
+    'beta': 5
+}
 ########################
 
 ### temporary ###
@@ -114,7 +98,10 @@ import shutil
 if os.path.exists(output_dir):
     shutil.rmtree(output_dir)
 # ##################
-
+mu_sigma_fn = './mu2ratio/mu_sigma.csv'
+ratio_fn = './mu2ratio/ratios.csv'
+point_fn = './mu2ratio/point_info.csv'
+n_total_exp = 100000
 
 print('GAMMA: ', GAMMA)
 print('GAMMA_Y: ', GAMMA_Y)
@@ -126,41 +113,39 @@ param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
 
 # print (param_names)
 
-gp_param2model_param_dic = {}
+bo_param2model_param_dic = {}
 
-gp_param_list = []
+bo_param_list = []
 for param_name in param_names:
     param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
-    gp_param_list.append(param_df[param_name].values)
+    bo_param_list.append(param_df[param_name].values)
 
     param_df.set_index(param_name, inplace=True)
 
-    gp_param2model_param_dic[param_name] = param_df.to_dict()['gp_' + param_name]
+    bo_param2model_param_dic[param_name] = param_df.to_dict()['bo_' + param_name]
 
-env = ClickSinEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
-                          output_dir=output_dir,
-                          reload=reload)
-# env = ClickOneDimGaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
-#                           output_dir=output_dir,
-#                           reload=reload)
+env = ClickOneDimGaussianEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, result_filename=result_filename,
+                                     output_dir=output_dir,
+                                     reload=reload)
 
-# agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=BETA, gt_available=True, my_kernel=kernel)
-agent = EGMRF_UCB(gp_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA, BETA=BETA,
-                  is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
-                  burnin=BURNIN,
-                  normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
-                  initial_k=INITIAL_K, initial_theta=INITIAL_THETA, n_exp=N_EXP, acquisition_func=ACQUISITION_FUNC)
+agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
+                is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
+                burnin=BURNIN,
+                normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
+                initial_k=INITIAL_K, initial_theta=INITIAL_THETA, acquisition_func=ACQUISITION_FUNC,
+                acquisition_param_dic=ACQUISITION_PARAM_DIC, n_ctr=n_total_exp)
 
 # for i in tqdm(range(n_iter)):
+
+agent.save_mu_sigma_csv(outfn=mu_sigma_fn, point_info_fn=point_fn)
+
+# agent.learn_from_clicks()
+
 for i in range(n_iter):
     try:
-        # flg = agent.learn()
-
-        # agent.plot(output_dir=output_dir)
         flg = agent.learn_from_clicks()
-
-        agent.save_mu_sigma_csv()
-
+        # agent.sample_randomly()
+        agent.plot_click_distribution(output_dir)
 
         if flg == False:
             print("Early Stopping!!!")
@@ -174,4 +159,6 @@ for i in range(n_iter):
         # print(agent.Treal)
         break
 
-plot_loss(agent.point_info_manager.T_seq, 'reward.png')
+plot_1dim([agent.total_clicked_ratio_list, agent.randomly_total_clicked_ratio_list], 'total_clicked_ratio_list.png')
+print(agent.total_clicked_ratio_list)
+print(agent.randomly_total_clicked_ratio_list)

@@ -1,0 +1,20 @@
+{
+    "output_dir": "output",
+    "result_filename": "output/svm_result.csv",
+    "parameter_dir": "param_dir/csv_files",
+    "template_cmdline_filename": "cmdline_svm.txt",
+    "template_parameter_filename": "parameter_svm.json",
+    "reload": false,
+    "n_iter": 500,
+    "beta": 5,
+    "ALPHA": 0,
+    "GAMMA": 1,
+    "GAMMA0": 0.01,
+    "GAMMA_Y": 1,
+    "IS_EDGE_NORMALIZED": true,
+    "UPDATE_HYPERPARAM_FUNC": "pairwise_sampling",
+    "N_EARLY_STOPPING": null,
+    "BURNIN": 10,
+    "NORMALIZE_OUTPUT(comment)": "Choose from 'zero_mean_unit_var', 'zero_one', 'null'",
+    "NORMALIZE_OUTPUT": "zero_mean_unit_var"
+}

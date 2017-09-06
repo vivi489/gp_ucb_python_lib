@@ -6,17 +6,15 @@ import pandas as pd
 from gphypo.util import mkdir_if_not_exist
 
 gp_param_dic = {
-    'x': np.arange(-5, 5.1, 1),
-    'y': np.arange(-5, 5.1, 1),
-    'z': np.arange(-5, 5.1, 1)
-
+    "c": np.arange(-2, 5.01, 0.2),
+    "gamma": np.arange(-2, 5.01, 0.2),
 }
 
-gp_param2gaussian_param = {
-    "x": lambda x: x,
-    "y": lambda x: x,
-    "z": lambda x: x
+gp_param2lda_param = {
+    "c": lambda x: 10 ** x,
+    "gamma": lambda x: 10 ** x
 }
+
 output_dir = 'csv_files'
 mkdir_if_not_exist(output_dir)
 
@@ -25,7 +23,7 @@ for k, v in gp_param_dic.items():
     res = pd.DataFrame({
         k: v
     })
-    res['bo_' + k] = res[k].apply(gp_param2gaussian_param[k])
+    res['bo_' + k] = res[k].apply(gp_param2lda_param[k])
 
     res.to_csv(output_filename, index=False)
     print(output_filename + " was created")

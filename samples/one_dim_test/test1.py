@@ -4,13 +4,13 @@ import os
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
-from sklearn.gaussian_process.kernels import Matern, RBF, ConstantKernel as C
+from sklearn.gaussian_process.kernels import Matern
 
-from gphypo.egmrf_ucb import EGMRF_UCB
 from gphypo.env import BasicEnvironment
-# from gphypo.gpucb import GPUCB
+from gphypo.gmrf_bo import GMRF_BO
+from gphypo.gp_bo import GP_BO
 from gphypo.normalization import zero_mean_unit_var_normalization
-from gphypo.util import mkdir_if_not_exist, plot_loss
+from gphypo.util import mkdir_if_not_exist, plot_1dim
 
 # from sklearn.gaussian_process.kernels import ConstantKernel as C, Matern
 # from tqdm import tqdm
@@ -20,8 +20,8 @@ OFFSET = 100000
 
 
 class SinEnvironment(BasicEnvironment):
-    def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
-        super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+        super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         x = np.array(x)
@@ -36,8 +36,8 @@ class SinEnvironment(BasicEnvironment):
 
 
 class OneDimGaussianEnvironment(BasicEnvironment):
-    def __init__(self, gp_param2model_param_dic, result_filename, output_dir, reload):
-        super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload)
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+        super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         assert x.ndim in [1, 2]
@@ -51,11 +51,9 @@ class OneDimGaussianEnvironment(BasicEnvironment):
 ########################
 ndim = 1
 
-BETA = 5  # 25  ## sqrt(BETA) controls the ratio between ucb and mean
-
-NORMALIZE_OUTPUT = 'zero_mean_unit_var'  # ALPHA should be 1
+# NORMALIZE_OUTPUT = 'zero_mean_unit_var'  # ALPHA should be 1
 # NORMALIZE_OUTPUT = 'zero_one'  # ALPHA should be 1
-# NORMALIZE_OUTPUT = None
+NORMALIZE_OUTPUT = None
 MEAN, STD = 0, 1
 
 reload = False
@@ -70,24 +68,31 @@ GAMMA_Y = 3  # 10 ** (-2)  # weight of adjacen
 
 IS_EDGE_NORMALIZED = True
 
-BURNIN = True  # TODO
+BURNIN = False  # True  # TODO
 
 INITIAL_K = 10
 INITIAL_THETA = 10
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
 ACQUISITION_FUNC = 'ucb'  # 'ei'
+ACQUISITION_PARAM_DIC = {
+    'beta': 5
+}
 
-output_dir = 'output_ucb'
+# ACQUISITION_FUNC = 'ei' # 'ei' or 'pi'
+# ACQUISITION_PARAM_DIC = {
+#     'par': 0.
+# }
+
+output_dir = 'output'
 parameter_dir = os.path.join('param_dir', 'csv_files')
 result_filename = os.path.join(output_dir, 'gaussian_result_1dim.csv')
 
 ########################
 
-# kernel = None
-
-kernel = C(1, constant_value_bounds="fixed") \
-         * RBF(2, length_scale_bounds="fixed")  # works well, but not so sharp
+kernel = None
+#
+# kernel = C(1) * RBF(2)  # works well, but not so sharp
 
 # kernel = Matern(nu=2.5)
 
@@ -107,42 +112,42 @@ mkdir_if_not_exist(output_dir)
 
 param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
 
-gp_param2model_param_dic = {}
+bo_param2model_param_dic = {}
 
-gp_param_list = []
+bo_param_list = []
 for param_name in param_names:
     param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
-    gp_param_list.append(param_df[param_name].values)
+    bo_param_list.append(param_df[param_name].values)
 
     param_df.set_index(param_name, inplace=True)
 
-    gp_param2model_param_dic[param_name] = param_df.to_dict()['gp_' + param_name]
+    bo_param2model_param_dic[param_name] = param_df.to_dict()['bo_' + param_name]
 
 
 def main():
-    # env = SinEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
+    # env = SinEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, result_filename=result_filename,
     #                      output_dir=output_dir,
     #                      reload=reload)
-    env = OneDimGaussianEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
+    env = OneDimGaussianEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, result_filename=result_filename,
                                     output_dir=output_dir,
                                     reload=reload)
 
-    # agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=BETA, gt_available=True, my_kernel=kernel)
-    # agent = GPUCB(gp_param_list, env, beta=BETA, gt_available=True, my_kernel=kernel, burnin=True)
-    agent = EGMRF_UCB(gp_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
-                      BETA=BETA,
-                      is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
-                      burnin=BURNIN,
-                      normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
-                      initial_k=INITIAL_K, initial_theta=INITIAL_THETA, acquisition_func=ACQUISITION_FUNC)
+    agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
+                    is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
+                    burnin=BURNIN,
+                    normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
+                    initial_k=INITIAL_K, initial_theta=INITIAL_THETA, acquisition_func=ACQUISITION_FUNC,
+                    acquisition_param_dic=ACQUISITION_PARAM_DIC)
+    #
+    # agent = GP_BO(bo_param_list, env, gt_available=True, my_kernel=kernel, burnin=BURNIN,
+    #               normalize_output=NORMALIZE_OUTPUT, acquisition_func=ACQUISITION_FUNC,
+    #               acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
     # for i in tqdm(range(n_iter)):
     for i in range(n_iter):
         try:
             flg = agent.learn()
-
             agent.plot(output_dir=output_dir)
-
             agent.save_mu_sigma_csv()
 
             if flg == False:
@@ -155,15 +160,15 @@ def main():
             print("Learnig process was forced to stop!")
             break
 
-    plot_loss(agent.point_info_manager.T_seq, 'reward.png')
+    plot_1dim(agent.point_info_manager.T_seq, 'reward.png')
 
 
 def calc_real_gamma_y():
-    env = SinEnvironment(gp_param2model_param_dic=gp_param2model_param_dic, result_filename=result_filename,
+    env = SinEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, result_filename=result_filename,
                          output_dir=output_dir,
                          reload=reload)
 
-    x_list = list(gp_param2model_param_dic['x'].values())
+    x_list = list(bo_param2model_param_dic['x'].values())
     y_list = env.run_model(-1, x_list)
     y_list, y_mean, y_std = zero_mean_unit_var_normalization(y_list)
     adj_diff = (y_list[1:] - y_list[:-1]) ** 2
