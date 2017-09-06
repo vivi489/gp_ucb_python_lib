@@ -5,8 +5,9 @@
 -->
 
 ## Install
-First, please install [suite-sparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) (necessary for efficient computation)
+Only Python 3.x is supported.
 
+Please install [suite-sparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) (necessary for efficient computation). 
 If you use Mac, execute this command.
 ```bash
 brew install suite-sparse
