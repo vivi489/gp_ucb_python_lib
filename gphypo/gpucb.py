@@ -61,7 +61,7 @@ class GPUCB(object):
         else:
             my_kernel = my_kernel
 
-        self.gp = GaussianProcessRegressor(kernel=my_kernel, n_restarts_optimizer=25, normalize_y=True)
+        self.gp = GaussianProcessRegressor(kernel=my_kernel, n_restarts_optimizer=25)
 
         self.X = []
         self.T = []

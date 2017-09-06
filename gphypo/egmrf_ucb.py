@@ -127,13 +127,6 @@ class EGMRF_UCB(object):
 
         assert normalize_output in [None, "zero_mean_unit_var", "zero_one"]
         self.normalize_output = normalize_output
-        if normalize_output == "zero_mean_unit_var":
-            self.t_mean = 0
-            self.t_std = 1
-        elif normalize_output == "zero_one":
-            self.t_lower = 0
-            self.t_upper = 1
-
         self.ndim = len(meshgrid)
 
         self.meshgrid = np.array(meshgrid)
