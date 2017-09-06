@@ -8,6 +8,12 @@ def mkdir_if_not_exist(dirname):
         pass
 
 
-def plot_loss(loss_list, output_filename='loss.png'):
-    plt.plot(loss_list)
+def plot_1dim(aggregated_list, output_filename='loss.png'):
+    if type(aggregated_list) is not list:
+        aggregated_list = [aggregated_list]
+
+    for one_list in aggregated_list:
+        plt.plot(one_list)
     plt.savefig(output_filename)
+    plt.close()
+

@@ -14,14 +14,14 @@ from .util import mkdir_if_not_exist
 class BasicEnvironment(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, gp_param2model_param_dic, result_filename='result.csv', output_dir='output',
+    def __init__(self, bo_param2model_param_dic, result_filename='result.csv', output_dir='output',
                  reload=False):
         self.result_filename = result_filename
         self.reload = reload
 
-        self.param_names = sorted(gp_param2model_param_dic.keys())
-        self.gp_param_names = ['gp_' + x for x in sorted(gp_param2model_param_dic.keys())]
-        self.gp_param2model_param_dic = gp_param2model_param_dic
+        self.param_names = sorted(bo_param2model_param_dic.keys())
+        self.bo_param_names = ['bo_' + x for x in sorted(bo_param2model_param_dic.keys())]
+        self.bo_param2model_param_dic = bo_param2model_param_dic
 
         if os.path.exists(result_filename):
             if reload:
@@ -36,7 +36,7 @@ class BasicEnvironment(object):
                 raise AttributeError(msg)
             else:
                 with open(result_filename, 'w') as f:
-                    columns = self.gp_param_names + self.param_names + ['n_exp'] + ['output']
+                    columns = self.bo_param_names + self.param_names + ['n_exp'] + ['output']
                     f.write(','.join(columns) + os.linesep)
 
                 print(result_filename + " is created!")
@@ -56,18 +56,18 @@ class BasicEnvironment(object):
 
         # assert x.ndim == 1
         # assert len(x) == len(
-        #     self.gp_param2model_param_dic), "oops! len(x)=%d, len(self.gp_param2model_param_dic)=%d" % (
-        #     len(x), len(self.gp_param2model_param_dic))
+        #     self.bo_param2model_param_dic), "oops! len(x)=%d, len(self.bo_param2model_param_dic)=%d" % (
+        #     len(x), len(self.bo_param2model_param_dic))
 
         res = np.zeros_like(x)
 
         if get_ground_truth:
             for j in range(x.shape[0]):
-                for i, (key, gp2model) in enumerate(self.gp_param2model_param_dic.items()):
+                for i, (key, gp2model) in enumerate(self.bo_param2model_param_dic.items()):
                     res[j, i] = gp2model[str(x[j, i])]
 
         else:
-            for i, (key, gp2model) in enumerate(self.gp_param2model_param_dic.items()):
+            for i, (key, gp2model) in enumerate(self.bo_param2model_param_dic.items()):
                 res[i] = gp2model[str(x[i])]
 
         return res.astype(np.float64)
@@ -107,10 +107,10 @@ class BasicEnvironment(object):
 
 
 class Cmdline_Environment(BasicEnvironment):
-    def __init__(self, gp_param2model_param_dic, template_cmdline_filename, template_paramter_filename=None,
+    def __init__(self, bo_param2model_param_dic, template_cmdline_filename, template_paramter_filename=None,
                  result_filename='result.csv',
                  output_dir='output', reload=False, ):
-        super().__init__(gp_param2model_param_dic, result_filename, output_dir, reload=reload)
+        super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload=reload)
 
         with open(template_cmdline_filename) as f:
             self.template_cmdline = Template(f.read())

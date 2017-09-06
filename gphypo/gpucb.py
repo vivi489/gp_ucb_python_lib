@@ -15,7 +15,7 @@ from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel as
 
 class GPUCB(object):
     def __init__(self, gp_param_list, environment, beta=100., noise=False, gt_available=False, my_kernel=None,
-                 burnin=0):
+                 burnin=0, optimizer="fmin_l_bfgs_b"):
         '''
         meshgrid: Output from np.methgrid.
         e.g. np.meshgrid(np.arange(-1, 1, 0.1), np.arange(-1, 1, 0.1)) for 2D space
@@ -37,6 +37,8 @@ class GPUCB(object):
 
         self.mu = np.array([0. for _ in range(self.X_grid.shape[0])])
         self.sigma = np.array([0.5 for _ in range(self.X_grid.shape[0])])
+
+        self.optimizer = optimizer
 
         self.ndim = len(meshgrid)
         if self.ndim == 1 and gt_available:
@@ -61,7 +63,7 @@ class GPUCB(object):
         else:
             my_kernel = my_kernel
 
-        self.gp = GaussianProcessRegressor(kernel=my_kernel, n_restarts_optimizer=25)
+        self.gp = GaussianProcessRegressor(kernel=my_kernel, n_restarts_optimizer=25, optimizer=self.optimizer)
 
         self.X = []
         self.T = []

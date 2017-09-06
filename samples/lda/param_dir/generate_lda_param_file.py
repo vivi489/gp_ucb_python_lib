@@ -26,7 +26,7 @@ for k, v in gp_param_dic.items():
     res = pd.DataFrame({
         k: v
     })
-    res['gp_' + k] = res[k].apply(gp_param2lda_param[k])
+    res['bo_' + k] = res[k].apply(gp_param2lda_param[k])
 
     res.to_csv(output_filename, index=False)
     print(output_filename + " was created")

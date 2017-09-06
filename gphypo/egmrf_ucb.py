@@ -79,7 +79,7 @@ def create_adjacency_mat(dim_list, calc_sparse=True):
 
 
 class EGMRF_UCB(object):
-    def __init__(self, gp_param_list, environment, GAMMA=0.01, GAMMA0=0.01, GAMMA_Y=0.01, ALPHA=0.1, BETA=16,
+    def __init__(self, bo_param_list, environment, GAMMA=0.01, GAMMA0=0.01, GAMMA_Y=0.01, ALPHA=0.1, BETA=16,
                  burnin=False, is_edge_normalized=False, noise=True, n_early_stopping=None,
                  gt_available=False, normalize_output="zero_mean_unit_var", optimizer="fmin_l_bfgs_b",
                  update_hyperparam_func='pairwise_sampling', initial_k=1, initial_theta=1,
@@ -96,8 +96,8 @@ class EGMRF_UCB(object):
         solution solution (i.e. larger curiosity)
         '''
 
-        self.gp_param_list = gp_param_list
-        meshgrid = np.meshgrid(*gp_param_list)
+        self.bo_param_list = bo_param_list
+        meshgrid = np.meshgrid(*bo_param_list)
         self.n_stop_pairwise_sampling = n_stop_pairwise_sampling
         self.GAMMA = GAMMA
         self.GAMMA0 = GAMMA0
@@ -136,7 +136,7 @@ class EGMRF_UCB(object):
 
         self.X_grid2idx_dic = {tuple(x): i for i, x in enumerate(self.X_grid)}
         self.n_points = self.X_grid.shape[0]
-        self.normalized_X_grid = create_normalized_X_grid(self.meshgrid)
+
 
         assert acquisition_func in ["ucb", "ei", "pi"]
         self.acquisition_func_name = acquisition_func
@@ -205,7 +205,7 @@ class EGMRF_UCB(object):
         # Reload past results if exits
         if environment.reload:
             for key, row in environment.result_df.iterrows():
-                x = row[environment.gp_param_names].as_matrix()
+                x = row[environment.bo_param_names].as_matrix()
                 t = float(row['output'])
                 print(x, t, row.n_exp)
                 n_exp = int(float(row.n_exp))
@@ -228,8 +228,8 @@ class EGMRF_UCB(object):
         # Grid-based BurnIn
         if burnin and not environment.reload:
             burnin = 2 ** self.ndim
-            quarter_point_list = [[gp_param[len(gp_param) // 4], gp_param[len(gp_param) // 4 * 3]] for gp_param in
-                                  gp_param_list]
+            quarter_point_list = [[bo_param[len(bo_param) // 4], bo_param[len(bo_param) // 4 * 3]] for bo_param in
+                                  bo_param_list]
 
             for coodinate in itertools.product(*quarter_point_list):
                 coodinate = np.array(coodinate)
@@ -318,7 +318,7 @@ class EGMRF_UCB(object):
         ratio_df = pd.read_csv(ratio_csv_fn)
 
         for key, row in ratio_df.iterrows():
-            x = row[self.environment.gp_param_names].as_matrix()
+            x = row[self.environment.bo_param_names].as_matrix()
             t = float(row['output'])
             print(x, t, row.n_exp)
             n_exp = int(float(row.ratio) * n_total_exp)
@@ -335,7 +335,7 @@ class EGMRF_UCB(object):
         self.update()
         return True
 
-    def sample(self, x, n_exp):
+    def sample(self, x, n_exp=1):
         if n_exp > 2:
             n1 = self.environment.sample(x, n_exp=self.n_exp)
             n0 = self.n_exp - n1
@@ -570,12 +570,23 @@ class EGMRF_UCB(object):
 
         return theta_opt, func_min
 
-    def save_mu_sigma_csv(self, outfn="mu_sigma.csv"):
-        df = pd.DataFrame(self.X_grid, columns=self.environment.gp_param_names)
-        df['mu'] = self.mu
-        df['sigma'] = self.sigma
+    def save_mu_sigma_csv(self, outfn="mu_sigma.csv", point_info_fn='point_info.csv'):
+        # df = pd.DataFrame(self.X_grid, columns=self.environment.bo_param_names)
+        # df['mu'] = self.mu
+        # df['sigma'] = self.sigma
+        # df.to_csv(outfn, index=False)
 
-        df.to_csv(outfn, index=False)
+        df = pd.DataFrame({
+            'mu': self.mu,
+            'sigma': self.sigma
+        })
+        df.index.name = 'point_id'
+        df.to_csv(outfn)
+
+        point_info_df = pd.DataFrame(self.X_grid, columns=self.environment.bo_param_names)
+        point_info_df.index.name = 'point_id'
+        point_info_df.to_csv(point_info_fn)
+
         print('%s was saved!' % outfn)
 
     def plot(self, output_dir):
