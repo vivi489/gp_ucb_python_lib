@@ -35,3 +35,7 @@ samples/three_dim_test/param_dir/one_mountain_info.txt
 *.gif
 *.model
 *.output
+
+*mu_sigma*.csv
+*point_info*.csv
+*ratio*.csv
