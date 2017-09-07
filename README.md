@@ -90,7 +90,9 @@ Please be careful of this because 'output' column meaning depends on the 'n_exp'
 This is controlled by 'env.py'.
 
 ### Your ML hyper-paramter tuning
-1. Copy the sample directory (ex. samples/svm or samples/lda). 
+1. Copy the sample directory (ex. samples/svm ). 
+
+(sample/lda needs to be fixed so do not use sample/lda (2017/9/7)) 
 
 2. Edit 4 ~ 6 files in your copied directory. ("HOGE" should be set to your model name.)
 
