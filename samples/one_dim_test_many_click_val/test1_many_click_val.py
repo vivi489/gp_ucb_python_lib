@@ -35,7 +35,7 @@ class ClickOneDimGaussianEnvironment(BasicEnvironment):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
-        prob = norm.pdf(x, loc=-3, scale=0.8) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5) / 3
+        prob = norm.pdf(x, loc=-3, scale=0.8) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
 
         if calc_gt:
             return logit(prob)
@@ -84,7 +84,7 @@ output_dir = 'output'
 parameter_dir = os.path.join('param_dir', 'csv_files')
 result_filename = os.path.join(output_dir, 'gaussian_result_1dim_click.csv')
 
-N_EXP = 1000
+# N_EXP = 1000000
 
 ACQUISITION_FUNC = 'ucb'
 ACQUISITION_PARAM_DIC = {
@@ -101,7 +101,7 @@ if os.path.exists(output_dir):
 mu_sigma_fn = './mu2ratio/mu_sigma.csv'
 ratio_fn = './mu2ratio/ratios.csv'
 point_fn = './mu2ratio/point_info.csv'
-n_total_exp = 100000
+n_total_exp = 10000
 
 print('GAMMA: ', GAMMA)
 print('GAMMA_Y: ', GAMMA_Y)
@@ -138,7 +138,7 @@ agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y,
 # for i in tqdm(range(n_iter)):
 
 agent.save_mu_sigma_csv(outfn=mu_sigma_fn, point_info_fn=point_fn)
-
+agent.plot_click_distribution(output_dir)
 # agent.learn_from_clicks()
 
 for i in range(n_iter):

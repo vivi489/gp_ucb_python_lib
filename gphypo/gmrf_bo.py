@@ -102,7 +102,7 @@ class GMRF_BO(BaseBO):
         self.ALPHA = ALPHA
 
         self.does_pairwise_sampling = False
-        assert update_hyperparam_func in [None, "pairwise_sampling", "simple_loglikelihood", "loglikelihood"]
+        assert update_hyperparam_func in [None, "pairwise_sampling", "simple_loglikelihood", "loglikelihood"] #TODO "simple_loglikelihood", "loglikelihood" does not work (2017/9/7)
         if update_hyperparam_func == 'pairwise_sampling':
             self.update_hyperparam = self.update_hyper_params_by_adj_idxes
             self.does_pairwise_sampling = True
@@ -141,7 +141,10 @@ class GMRF_BO(BaseBO):
 
         # Grid-based BurnIn
         if burnin and not environment.reload:
-            self.do_grid_based_burnin()
+            if self.n_ctr:
+                self.do_all_point_burnin()
+            else:
+                self.do_grid_based_burnin()
 
         if environment.reload or burnin:
             if self.update_hyperparam is not None:
@@ -149,6 +152,12 @@ class GMRF_BO(BaseBO):
 
         self.update()
         self.total_clicked_ratio_list = []
+
+    def do_all_point_burnin(self):
+        n_sample_per_point = int(self.n_ctr / self.n_points)
+        for i in range(self.n_points):
+            self.sample(self.X_grid[i], n_sample_per_point)
+
 
     def do_grid_based_burnin(self):
         burnin = 2 ** self.ndim
@@ -200,19 +209,19 @@ class GMRF_BO(BaseBO):
         adj_idxes = scipy.sparse.find(self.baseTau0[idx] != 0)[1]
         return random.choice(adj_idxes)
 
-    def learn(self, n_exp=1):
+    def learn(self):
         T = self.point_info_manager.get_T(excludes_none=True)
 
         grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T))
 
-        continue_flg = self.sample(self.X_grid[grid_idx], n_exp)
+        continue_flg = self.sample(self.X_grid[grid_idx])
 
         if not continue_flg:
             return False
 
         if self.does_pairwise_sampling:
             adj_idx = self.get_pairwise_idx(grid_idx)
-            continue_flg = self.sample(self.X_grid[adj_idx], n_exp)
+            continue_flg = self.sample(self.X_grid[adj_idx])
 
             if not continue_flg:
                 return False
@@ -267,10 +276,14 @@ class GMRF_BO(BaseBO):
 
         var_list = np.unique(var_list)
         var = var_list.mean()
-
-        self.GAMMA_Y = 1 / var / (self.ndim ** 2)
-        self.GAMMA = self.GAMMA_Y * (2 * self.ndim)
-        self.GAMMA0 = self.GAMMA * 0.01
+        if self.n_ctr:
+            self.GAMMA_Y = 1 / var
+            self.GAMMA = self.GAMMA_Y * (2 * self.ndim)
+            self.GAMMA0 = self.GAMMA * 0.01
+        else:
+            self.GAMMA_Y = 1 / var / (self.ndim ** 2)
+            self.GAMMA = self.GAMMA_Y * (2 * self.ndim)
+            self.GAMMA0 = self.GAMMA * 0.01
         self.ALPHA = np.mean(self.point_info_manager.get_T(excludes_none=True))
 
         print("New GammaY: %s" % self.GAMMA_Y)

@@ -118,7 +118,7 @@ class BaseBO(object):
             x = row[self.environment.bo_param_names].as_matrix()
             t = float(row['output'])
             print(x, t, row.n_exp)
-            n_exp = int(float(row.n_exp))
+            n_exp = round(float(row.n_exp))
             if n_exp > 1:
                 n1 = t
                 n0 = n_exp - n1
@@ -140,7 +140,7 @@ class BaseBO(object):
         return sampled_y.mean(), sampled_y.std()
 
     @abstractmethod
-    def learn(self, n_exp=1):
+    def learn(self):
         pass
 
     @abstractmethod
@@ -163,7 +163,7 @@ class BaseBO(object):
 
         for key, row in ratio_df.iterrows():
             x = row[self.environment.bo_param_names].as_matrix()
-            continue_flg = self.sample(x, int(row.n_exp))
+            continue_flg = self.sample(x, round(row.n_exp))
 
     # This method is just for comparison
     def sample_randomly(self):
@@ -181,6 +181,7 @@ class BaseBO(object):
         total_clicked_ratio = n_total_clicked / self.n_ctr
         self.randomly_total_clicked_ratio_list.append(total_clicked_ratio)
 
+    # Generate the obserbation value
     def sample(self, x, n_exp=None):
         if n_exp is not None and n_exp > 1:
             n1 = self.environment.sample(x, n_exp=n_exp)  # Returns the number of click
@@ -281,7 +282,7 @@ class BaseBO(object):
                 size_list = (clicked_list / n_total_clicked) * 1000
                 ax.scatter([float(x[0]) for x in self.X_grid], [float(x[1]) for x in self.X_grid],
                            mu.reshape(self.meshgrid[0].shape),
-                           s=size_list)
+                           s=size_list, alpha=0.5, color='r')
 
             else:
                 fig = plt.figure(figsize=(6, 10))
@@ -307,7 +308,7 @@ class BaseBO(object):
                 size_list = (clicked_list / n_total_clicked) * 1000
                 upper.scatter([float(x[0]) for x in self.X_grid], [float(x[1]) for x in self.X_grid],
                               mu.reshape(self.meshgrid[0].shape),
-                              s=size_list)
+                              s=size_list, alpha=0.5, color='r')
 
                 # upper.set_zlabel('f(x)', fontdict={'size': 18})
                 # lower.set_zlabel(self.acquisition_func_name.upper(), fontdict={'size': 18})
@@ -333,7 +334,7 @@ class BaseBO(object):
                 size_list = (clicked_list / n_total_clicked) * 1000
                 plt.scatter([float(x[0]) for x in self.X_grid],
                             mu.reshape(self.meshgrid[0].shape),
-                            s=size_list)
+                            s=size_list, alpha=0.5, color='r')
 
                 print(clicked_list.shape)
                 print(np.argmax(clicked_list))
@@ -358,7 +359,7 @@ class BaseBO(object):
                 size_list = (clicked_list / n_total_clicked) * 1000
                 upper.scatter([float(x[0]) for x in self.X_grid],
                               mu.reshape(self.meshgrid[0].shape),
-                              s=size_list)
+                              s=size_list, alpha=0.5, color='r')
 
                 upper.set_ylabel('f(x)', fontdict={'size': 18})
                 lower.set_ylabel(self.acquisition_func_name.upper(), fontdict={'size': 18})

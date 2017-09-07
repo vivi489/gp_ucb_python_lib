@@ -68,11 +68,11 @@ class GP_BO(BaseBO):
         self.mu, self.sigma = self.gp.predict(self.X_grid, return_std=True)
         print('%d burins has finished!' % burnin)
 
-    def learn(self, n_exp=1):
+    def learn(self):
         T = self.point_info_manager.get_T(excludes_none=True)
         grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T))
 
-        continue_flg = self.sample(self.X_grid[grid_idx], n_exp)
+        continue_flg = self.sample(self.X_grid[grid_idx])
 
         if not continue_flg:
             return False

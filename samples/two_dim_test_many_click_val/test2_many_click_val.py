@@ -149,7 +149,7 @@ agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y,
                 acquisition_param_dic=ACQUISITION_PARAM_DIC, n_ctr=n_total_exp)
 
 # for i in tqdm(range(n_iter)):
-
+agent.plot_click_distribution(output_dir)
 agent.save_mu_sigma_csv(outfn=mu_sigma_fn, point_info_fn=point_fn)
 
 # agent.learn_from_clicks()
