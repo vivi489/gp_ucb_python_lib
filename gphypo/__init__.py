@@ -1,7 +1,7 @@
 from . import util
 from . import env
-from . import gpucb
-from . import egmrf_ucb
+from . import gp_bo
+from . import gmrf_bo
 from . import run_cmdenv
 from . import point_info
 

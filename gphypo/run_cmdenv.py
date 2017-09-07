@@ -3,32 +3,36 @@ import json
 import os
 from string import Template
 
-import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from gphypo.egmrf_ucb import EGMRF_UCB
-from .gpucb import GPUCB
+from .gmrf_bo import GMRF_BO
+from .gp_bo import GP_BO
 from .util import mkdir_if_not_exist
 
 
-def run_gp(gp_paramter_filename, MyEnvironment):
-    with open(gp_paramter_filename, 'r') as f:
-        gp_parameter_dic = json.load(f)
+def run_gp(bo_paramter_filename, MyEnvironment):
+    with open(bo_paramter_filename, 'r') as f:
+        bo_parameter_dic = json.load(f)
 
-    output_dir = gp_parameter_dic['output_dir']
+    output_dir = bo_parameter_dic['output_dir']
     mkdir_if_not_exist(output_dir)
-    with open(os.path.join(output_dir, 'parameter_gp_output.json'), 'w') as f:
-        json.dump(gp_parameter_dic, f, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
+    with open(os.path.join(output_dir, 'parameter_bo_output.json'), 'w') as f:
+        json.dump(bo_parameter_dic, f, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
 
-    result_filename = gp_parameter_dic['result_filename']
-    parameter_dir = gp_parameter_dic['parameter_dir']
-    template_cmdline_filename = gp_parameter_dic['template_cmdline_filename']
-    template_parameter_filename = gp_parameter_dic['template_parameter_filename']
-    reload = gp_parameter_dic['reload']
-    n_iter = gp_parameter_dic['n_iter']
-    beta = gp_parameter_dic['beta']
-    noise = gp_parameter_dic['noise']
+    result_filename = bo_parameter_dic['result_filename']
+    parameter_dir = bo_parameter_dic['parameter_dir']
+    template_cmdline_filename = bo_parameter_dic['template_cmdline_filename']
+    template_parameter_filename = bo_parameter_dic['template_parameter_filename']
+    reload = bo_parameter_dic['reload']
+    n_iter = bo_parameter_dic['n_iter']
+    noise = bo_parameter_dic['noise']
+
+    kernel = None  # TODO
+    ACQUISITION_FUNC = bo_parameter_dic['ACQUISITION_FUNC']
+    ACQUISITION_PARAM_DIC = bo_parameter_dic['ACQUISITION_PARAM_DIC']
+    NORMALIZE_OUTPUT = bo_parameter_dic['NORMALIZE_OUTPUT']  # TODO
+    BURNIN = bo_parameter_dic['BURNIN']  # TODO
 
     cmdline_paramfile_str = ''
     with open(template_cmdline_filename) as f:
@@ -52,25 +56,27 @@ def run_gp(gp_paramter_filename, MyEnvironment):
         else:
             print("%s is one hyper-paramter!" % param_name)
 
-    gp_param2model_param_dic = {}
+    bo_param2model_param_dic = {}
 
-    gp_param_list = []
+    bo_param_list = []
     for param_name in param_names:
         param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
-        gp_param_list.append(param_df[param_name].values)
+        bo_param_list.append(param_df[param_name].values)
 
         param_df.set_index(param_name, inplace=True)
 
-        gp_param2model_param_dic[param_name] = param_df.to_dict()['transformed_' + param_name]
+        bo_param2model_param_dic[param_name] = param_df.to_dict()['transformed_' + param_name]
 
-    env = MyEnvironment(gp_param2model_param_dic=gp_param2model_param_dic,
+    env = MyEnvironment(bo_param2model_param_dic=bo_param2model_param_dic,
                         template_cmdline_filename=template_cmdline_filename,
                         template_paramter_filename=template_parameter_filename,
                         result_filename=result_filename,
                         output_dir=output_dir,
                         reload=reload)
 
-    agent = GPUCB(np.meshgrid(*gp_param_list), env, beta=beta, noise=noise)
+    agent = GP_BO(bo_param_list, env, gt_available=False, my_kernel=kernel, burnin=BURNIN,
+                  normalize_output=NORMALIZE_OUTPUT, acquisition_func=ACQUISITION_FUNC,
+                  acquisition_param_dic=ACQUISITION_PARAM_DIC, noise=noise)
 
     for i in tqdm(range(n_iter)):
         try:
@@ -82,32 +88,34 @@ def run_gp(gp_paramter_filename, MyEnvironment):
             break
 
 
-def run_gmrf(gmrf_paramter_filename, MyEnvironment):
-    with open(gmrf_paramter_filename, 'r') as f:
-        gmrf_parameter_dic = json.load(f)
+def run_gmrf(bo_paramter_filename, MyEnvironment):
+    with open(bo_paramter_filename, 'r') as f:
+        bo_parameter_dic = json.load(f)
 
-    output_dir = gmrf_parameter_dic['output_dir']
+    output_dir = bo_parameter_dic['output_dir']
     mkdir_if_not_exist(output_dir)
-    with open(os.path.join(output_dir, 'parameter_gmrf_output.json'), 'w') as f:
-        json.dump(gmrf_parameter_dic, f, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
+    with open(os.path.join(output_dir, 'parameter_bo_output.json'), 'w') as f:
+        json.dump(bo_parameter_dic, f, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
 
-    result_filename = gmrf_parameter_dic['result_filename']
-    parameter_dir = gmrf_parameter_dic['parameter_dir']
-    template_cmdline_filename = gmrf_parameter_dic['template_cmdline_filename']
-    template_parameter_filename = gmrf_parameter_dic['template_parameter_filename']
-    reload = gmrf_parameter_dic['reload']
-    n_iter = gmrf_parameter_dic['n_iter']
-    n_exp = gmrf_parameter_dic['n_exp']
-    beta = gmrf_parameter_dic['beta']
-    ALPHA = gmrf_parameter_dic['ALPHA']
-    GAMMA = gmrf_parameter_dic['GAMMA']
-    GAMMA0 = gmrf_parameter_dic['GAMMA0']
-    GAMMA_Y = gmrf_parameter_dic['reload']
-    IS_EDGE_NORMALIZED = gmrf_parameter_dic['IS_EDGE_NORMALIZED']
-    UPDATE_HYPERPARAM_FUNC = gmrf_parameter_dic['UPDATE_HYPERPARAM_FUNC']
-    N_EARLY_STOPPING = gmrf_parameter_dic['N_EARLY_STOPPING']
-    BURNIN = gmrf_parameter_dic['BURNIN']
-    NORMALIZE_OUTPUT = gmrf_parameter_dic['NORMALIZE_OUTPUT']
+    result_filename = bo_parameter_dic['result_filename']
+    parameter_dir = bo_parameter_dic['parameter_dir']
+    template_cmdline_filename = bo_parameter_dic['template_cmdline_filename']
+    template_parameter_filename = bo_parameter_dic['template_parameter_filename']
+    reload = bo_parameter_dic['reload']
+    n_iter = bo_parameter_dic['n_iter']
+    n_exp = bo_parameter_dic['n_exp']
+    beta = bo_parameter_dic['beta']
+    ALPHA = bo_parameter_dic['ALPHA']
+    GAMMA = bo_parameter_dic['GAMMA']
+    GAMMA0 = bo_parameter_dic['GAMMA0']
+    GAMMA_Y = bo_parameter_dic['reload']
+    IS_EDGE_NORMALIZED = bo_parameter_dic['IS_EDGE_NORMALIZED']
+    UPDATE_HYPERPARAM_FUNC = bo_parameter_dic['UPDATE_HYPERPARAM_FUNC']
+    N_EARLY_STOPPING = bo_parameter_dic['N_EARLY_STOPPING']
+    BURNIN = bo_parameter_dic['BURNIN']
+    NORMALIZE_OUTPUT = bo_parameter_dic['NORMALIZE_OUTPUT']
+    ACQUISITION_FUNC = 'ucb'  # TODO
+    ACQUISITION_PARAM_DIC = {'beta': beta}  # TODO
 
     cmdline_paramfile_str = ''
     with open(template_cmdline_filename) as f:
@@ -131,29 +139,30 @@ def run_gmrf(gmrf_paramter_filename, MyEnvironment):
         else:
             print("%s is one hyper-paramter!" % param_name)
 
-    gmrf_param2model_param_dic = {}
+    bo_param2model_param_dic = {}
 
-    gmrf_param_list = []
+    bo_param_list = []
     for param_name in param_names:
         param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
-        gmrf_param_list.append(param_df[param_name].values)
+        bo_param_list.append(param_df[param_name].values)
 
         param_df.set_index(param_name, inplace=True)
 
-        gmrf_param2model_param_dic[param_name] = param_df.to_dict()['transformed_' + param_name]
+        bo_param2model_param_dic[param_name] = param_df.to_dict()['transformed_' + param_name]
 
-    env = MyEnvironment(gp_param2model_param_dic=gmrf_param2model_param_dic,
+    env = MyEnvironment(bo_param2model_param_dic=bo_param2model_param_dic,
                         template_cmdline_filename=template_cmdline_filename,
                         template_paramter_filename=template_parameter_filename,
                         result_filename=result_filename,
                         output_dir=output_dir,
                         reload=reload)
 
-    agent = EGMRF_UCB(np.meshgrid(*gmrf_param_list), env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
-                      BETA=beta,
-                      is_edge_normalized=IS_EDGE_NORMALIZED, n_early_stopping=N_EARLY_STOPPING,
-                      burnin=BURNIN,
-                      normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC, n_exp=n_exp)
+    agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
+                    is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=False, n_early_stopping=N_EARLY_STOPPING,
+                    burnin=BURNIN,
+                    normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
+                    acquisition_func=ACQUISITION_FUNC,
+                    acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
     for i in tqdm(range(n_iter)):
         try:

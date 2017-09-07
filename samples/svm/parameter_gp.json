@@ -6,6 +6,18 @@
     "template_parameter_filename": "parameter_svm.json",
     "reload": false,
     "n_iter": 500,
-    "beta": 16,
-    "noise": true
+    "noise": true,
+    "ACQUISITION_FUNC": "ucb",
+    "(comment)ACQUISITION_FUNC": "choose from ['ucb', 'ei', 'pi']",
+    "ACQUISITION_PARAM_DIC": {
+        "beta": 5,
+        "par": 0.001
+    },
+    "(comment)ACQUISITION_PARAM_DIC": {
+        "beta": "This param is for ucb",
+        "par": "This param is for pi or ei"
+    },
+    "NORMALIZE_OUTPUT": "zero_mean_unit_var",
+    "(comment)NORMALIZE_OUTPUT": "choose from ['zero_mean_unit_var', 'zero_one', None]",
+    "BURNIN": false
 }
