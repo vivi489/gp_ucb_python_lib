@@ -21,7 +21,10 @@ class BasicEnvironment(object):
 
         self.param_names = sorted(bo_param2model_param_dic.keys())
         self.bo_param_names = ['bo_' + x for x in sorted(bo_param2model_param_dic.keys())]
-        self.bo_param2model_param_dic = bo_param2model_param_dic
+        
+        #dict: param_file name -> column dict (the column with the name "bo_"+param_file name)
+        #column dict: index column element -> cell value
+        self.bo_param2model_param_dic = bo_param2model_param_dic  
 
         if os.path.exists(result_filename):
             if reload:
@@ -61,15 +64,19 @@ class BasicEnvironment(object):
 
         res = np.zeros_like(x)
 
-        if get_ground_truth:
+        if get_ground_truth: # x is 2d if True; 1d otherwise
             for j in range(x.shape[0]):
+                # gp2model: "bo_" column dict of a param file
+                # gp2model: param_file csv index element -> cell value
                 for i, (key, gp2model) in enumerate(self.bo_param2model_param_dic.items()):
+                    # key (the index column item) doesn't matter here
+                    # i counts along a column
                     res[j, i] = gp2model[str(x[j, i])]
 
         else:
             for i, (key, gp2model) in enumerate(self.bo_param2model_param_dic.items()):
                 res[i] = gp2model[str(x[i])]
-        #print("res\n", res)
+
         return res.astype(np.float64)
 
     @abstractmethod
