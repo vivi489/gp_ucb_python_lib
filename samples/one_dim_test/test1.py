@@ -112,15 +112,18 @@ mkdir_if_not_exist(output_dir)
 
 param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
 
-bo_param2model_param_dic = {}
+bo_param2model_param_dic = {} 
 
 bo_param_list = []
-for param_name in param_names:
-    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
+for param_name in param_names: # param_name is a param file's name
+    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str) #makes index column type str instead of float
+    
+    # param_df has a column of its csv file name, e.g. "x"
     bo_param_list.append(param_df[param_name].values)
-
     param_df.set_index(param_name, inplace=True)
-
+    
+    #dict: param_file name -> column dict (the column with the name "bo_"+param_file name)
+    #column dict: index column element -> cell value #index column is type str
     bo_param2model_param_dic[param_name] = param_df.to_dict()['bo_' + param_name]
 
 
