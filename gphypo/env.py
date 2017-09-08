@@ -69,7 +69,7 @@ class BasicEnvironment(object):
         else:
             for i, (key, gp2model) in enumerate(self.bo_param2model_param_dic.items()):
                 res[i] = gp2model[str(x[i])]
-
+        #print("res\n", res)
         return res.astype(np.float64)
 
     @abstractmethod
