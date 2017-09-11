@@ -32,7 +32,6 @@ class BasicEnvironment(object):
             else:
                 msg = "Oops! %s has already existed... Please change the filename or set reload flag to be true!" % result_filename
                 raise AttributeError(msg)
-
         else:
             if reload:
                 msg = "Oops! Reload flag is true, but %s does not exist..." % result_filename
@@ -72,7 +71,6 @@ class BasicEnvironment(object):
                     # key (the index column item) doesn't matter here
                     # i counts along a column
                     res[j, i] = gp2model[str(x[j, i])]
-
         else:
             for i, (key, gp2model) in enumerate(self.bo_param2model_param_dic.items()):
                 res[i] = gp2model[str(x[i])]
