@@ -10,7 +10,7 @@ from matplotlib import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from gphypo import normalization
-from gphypo.acquisition_func import UCB, EI, PI
+from gphypo.acquisition_func import *
 from gphypo.point_info import PointInfoManager
 from gphypo.transform_val import transform_click_val2real_val
 from gphypo.util import mkdir_if_not_exist
@@ -41,41 +41,40 @@ class BaseBO(object):
 
         self.bo_param_list = bo_param_list
         self.meshgrid = np.array(np.meshgrid(*bo_param_list))
-
         self.environment = environment
         self.optimizer = optimizer
-
         self.does_pairwise_sampling = does_pairwise_sampling
 
         assert normalize_output in [None, "zero_mean_unit_var", "zero_one"]
+        
         self.normalize_output = normalize_output
-
         self.ndim_list = [len(bo_param) for bo_param in bo_param_list]
-
         self.ndim = len(self.meshgrid)
 
         self.X_grid = self.meshgrid.reshape(self.meshgrid.shape[0], -1).T
         self.X_grid2idx_dic = {tuple(x): i for i, x in enumerate(self.X_grid)}
         self.n_points = self.X_grid.shape[0]
 
-        assert acquisition_func in ["ucb", "ei", "pi"]
+        assert acquisition_func in ["ucb", "ei", "pi", "ts", "en"]
         self.acquisition_func_name = acquisition_func
         if acquisition_func == 'ucb':
             self.acquisition_func = UCB(acquisition_param_dic, d_size=self.X_grid.shape[0])
         elif acquisition_func == 'ei':
             self.acquisition_func = EI(acquisition_param_dic)
-        else:
+        elif acquisition_func == 'pi':
             self.acquisition_func = PI(acquisition_param_dic)
+        elif acquisition_func == 'ts':
+            self.acquisition_func = Thompson(acquisition_param_dic)
+        else:
+            self.acquisition_func = EnsembledAC(acquisition_param_dic, d_size=self.X_grid.shape[0])
 
         self.gt_available = gt_available
         self._set_z()
-
         self.point_info_manager = PointInfoManager(self.X_grid, self.normalize_output)
-
         self._set_early_stopping_params(n_early_stopping)
 
         self.mu = np.random.randn(self.n_points)
-        self.sigma = np.random.randn(self.n_points)
+        self.sigma = abs(np.random.randn(self.n_points))
         self.n_ctr = n_ctr
         self.randomly_total_clicked_ratio_list = []
 
@@ -182,7 +181,7 @@ class BaseBO(object):
         self.randomly_total_clicked_ratio_list.append(total_clicked_ratio)
 
     # Generate the obserbation value
-    def sample(self, x, n_exp=None):
+    def sample(self, x, n_exp=None): # performs environment sampling on x
         if n_exp is not None and n_exp > 1:
             n1 = self.environment.sample(x, n_exp=n_exp)  # Returns the number of click
             n0 = n_exp - n1  # Calculates the number of unclick
@@ -194,7 +193,6 @@ class BaseBO(object):
             t = self.environment.sample(x)
             if type(t) == list or type(t) == np.ndarray:
                 t = t[0]
-
             self.point_info_manager.update(x, {t: 1})
 
         if t <= self.bestT:
@@ -263,7 +261,7 @@ class BaseBO(object):
                 mu = self.point_info_manager.get_unnormalized_value_list(mu)
                 acq_score = self.point_info_manager.get_unnormalized_value_list(acq_score)
 
-            if self.acquisition_func_name == 'ucb':
+            if self.acquisition_func_name in ["ucb", "ts", "en"]:
                 fig = plt.figure()
                 ax = Axes3D(fig)
                 ax.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float),
@@ -324,7 +322,7 @@ class BaseBO(object):
             X, T = self.point_info_manager.get_observed_XT_pair(gets_real=True)
             X_seq, T_seq = self.point_info_manager.X_seq, self.point_info_manager.T_seq
 
-            if self.acquisition_func_name == 'ucb':
+            if self.acquisition_func_name in ["ucb", "ts", "en"]:
                 plt.plot(self.meshgrid[0].astype(float), mu, color='g')
                 plt.plot(self.meshgrid[0].astype(float), acq_score, color='y')
                 plt.plot(self.meshgrid[0], self.z, alpha=0.3, color='b')
@@ -411,7 +409,7 @@ class BaseBO(object):
                 mu = self.point_info_manager.get_unnormalized_value_list(mu)
                 acq_score = self.point_info_manager.get_unnormalized_value_list(acq_score)
 
-            if self.acquisition_func_name == 'ucb':
+            if self.acquisition_func_name in ["ucb", "ts", "en"]:
                 fig = plt.figure()
                 ax = Axes3D(fig)
                 ax.plot_wireframe(self.meshgrid[0].astype(float), self.meshgrid[1].astype(float),
@@ -471,7 +469,7 @@ class BaseBO(object):
             X, T = self.point_info_manager.get_observed_XT_pair(gets_real=True)
             X_seq, T_seq = self.point_info_manager.X_seq, self.point_info_manager.T_seq
 
-            if self.acquisition_func_name == 'ucb':
+            if self.acquisition_func_name in ["ucb", "ts", "en"]:
                 plt.plot(self.meshgrid[0].astype(float), mu, color='g')
                 plt.plot(self.meshgrid[0].astype(float), acq_score, color='y')
                 plt.plot(self.meshgrid[0], self.z, alpha=0.3, color='b')

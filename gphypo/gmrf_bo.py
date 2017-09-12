@@ -210,25 +210,20 @@ class GMRF_BO(BaseBO):
         return random.choice(adj_idxes)
 
     def learn(self):
-        T = self.point_info_manager.get_T(excludes_none=True)
-
-        grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T))
-
-        continue_flg = self.sample(self.X_grid[grid_idx])
-
+        T = self.point_info_manager.get_T(excludes_none=True) # T: the means of all the points; either normalized or not
+        grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T)) # this line is crucial
+        continue_flg = self.sample(self.X_grid[grid_idx]) # self.sample alters the optimizer's point info manager which contains all the points
         if not continue_flg:
             return False
 
         if self.does_pairwise_sampling:
             adj_idx = self.get_pairwise_idx(grid_idx)
             continue_flg = self.sample(self.X_grid[adj_idx])
-
             if not continue_flg:
                 return False
 
         if self.point_info_manager.update_cnt > self.n_stop_pairwise_sampling:
             self.does_pairwise_sampling = False
-
         self.update()
         return True
 
@@ -268,7 +263,6 @@ class GMRF_BO(BaseBO):
     def update_hyper_params_by_adj_idxes(self):
         T = self.point_info_manager.get_T(excludes_none=False)
         var_list = []
-
         for i, j in self.adj_pair_list:
             t_i, t_j = T[i], T[j]
             if (t_i is not None) and (t_j is not None):

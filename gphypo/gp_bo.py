@@ -30,9 +30,8 @@ class GP_BO(BaseBO):
                                     optimizer=optimizer)
 
         if my_kernel is None:
-            # Instanciate a Gaussian Process model
-            my_kernel = C(1, constant_value_bounds="fixed") * RBF(2,
-                                                                  length_scale_bounds="fixed")  # works well, but not so sharp
+            # Instantiate a Gaussian Process model
+            my_kernel = C(1, constant_value_bounds="fixed") * RBF(2, length_scale_bounds="fixed")  # works well, but not so sharp
             #     my_kernel = Matern(nu=2.5) # good
             if noise:
                 my_kernel += WhiteKernel(1e-1)
@@ -69,10 +68,9 @@ class GP_BO(BaseBO):
         print('%d burins has finished!' % burnin)
 
     def learn(self):
-        T = self.point_info_manager.get_T(excludes_none=True)
-        grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T))
-
-        continue_flg = self.sample(self.X_grid[grid_idx])
+        T = self.point_info_manager.get_T(excludes_none=True)# T: the means of all the points; either normalized or not
+        grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T))# this line is crucial
+        continue_flg = self.sample(self.X_grid[grid_idx])# self.sample alters the optimizer's point info manager which contains all the points
 
         if not continue_flg:
             return False

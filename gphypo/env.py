@@ -55,12 +55,6 @@ class BasicEnvironment(object):
         :return: Transformed hyperparameter values
         '''
         x = np.array(x)
-
-        # assert x.ndim == 1
-        # assert len(x) == len(
-        #     self.bo_param2model_param_dic), "oops! len(x)=%d, len(self.bo_param2model_param_dic)=%d" % (
-        #     len(x), len(self.bo_param2model_param_dic))
-
         res = np.zeros_like(x)
 
         if get_ground_truth: # x is 2d if True; 1d otherwise
@@ -81,33 +75,30 @@ class BasicEnvironment(object):
     def run_model(self, n_model, x, calc_gt=False, n_exp=1):
         pass
 
-    def sample(self, x, get_ground_truth=False, n_exp=1):
+    def sample(self, x, get_ground_truth=False, n_exp=1): # it seems x has to be 1d array and only 1d
         if get_ground_truth:
             processed_x = self.preprocess_x(x, get_ground_truth=True)
             result = self.run_model(-1, processed_x, True)
-            # result = self.run_model(-1, x, True)
-
             return result
 
         n_model = self.result_df.shape[0] + 1
-
         processed_x = self.preprocess_x(x)
-
+        
         prefix_msg = 'No.%04d model started!  ' % n_model
         pair_msg = ', '.join(['{}: {}'.format(k, v) for k, v in zip(self.param_names, processed_x)])
         print(prefix_msg + pair_msg)
 
         result = self.run_model(n_model, processed_x, n_exp=n_exp)
-        if type(result) == list or type(result) == np.ndarray:
-            result = result[0]
+        assert type(result) == list or type(result) == np.ndarray # This assertion should hold
+        result = result[0]
 
+        # result_df is preread from files during initialization
         self.result_df.loc[len(self.result_df)] = list(map(str, list(x) + list(processed_x) + [n_exp, result]))
-
-        self.result_df.to_csv(self.result_filename, index=False)
-
+        # update and overwrite the file
+        self.result_df.to_csv(self.result_filename, index=False) 
+        
         msg = 'No.%04d model finished! Result was %f' % (n_model, result)
         print(msg)
-
         return result
 
 

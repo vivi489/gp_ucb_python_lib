@@ -1,4 +1,4 @@
-import abc
+import abc, time
 
 import numpy as np
 from scipy.stats import norm
@@ -26,7 +26,6 @@ class EI(BaseAcquisitionFunction):
             z = (mu - par) / sigma
         else:
             z = (mu - max(observation_list) - par) / sigma
-
         f = sigma * (z * norm.cdf(z) + norm.pdf(z))
         return f
 
@@ -38,7 +37,6 @@ class PI(BaseAcquisitionFunction):
         inc_val = 0
         if len(observation_list) > 0:
             inc_val = max(observation_list)
-
         z = - (inc_val - mu - par) / sigma
         return norm.cdf(z)
 
@@ -57,10 +55,52 @@ class UCB(BaseAcquisitionFunction):
         elif self.type == 'theorem1':
             delta = 0.9  # must be in (0, 1)
             beta = 2 * np.log(self.d_size * ((self.learn_cnt * np.pi) ** 2) / (6 * delta))
-
         return beta
 
     def compute(self, mu, sigma, observation_list):
         beta = self.get_beta()
         self.learn_cnt += 1
         return mu + sigma * np.sqrt(beta)
+    
+
+class Thompson(BaseAcquisitionFunction):
+    def __init__(self, param_dic, type="normal", d_size=None):
+        super().__init__(param_dic)
+        self.learn_cnt = 1
+        self.type = type
+        self.d_size = d_size
+
+    def compute(self, mu, sigma, observation_list):
+        #beta = self.get_beta()
+        self.learn_cnt += 1
+        return np.random.normal(mu, sigma)
+
+
+class EnsembledAC(BaseAcquisitionFunction):
+    def __init__(self, param_dic, type="normal", d_size=None):
+        super().__init__(param_dic)
+        self.learn_cnt = 1
+        self.type = type
+        self.d_size = d_size
+        self.eps = self.param_dic['eps'] # interval [0, 1]
+        np.random.seed(int(time.time()))
+
+    def get_beta(self):
+        global beta
+        if self.type == "normal":
+            beta = self.param_dic['beta']
+        elif self.type == 'theorem1':
+            delta = 0.9  # must be in (0, 1)
+            beta = 2 * np.log(self.d_size * ((self.learn_cnt * np.pi) ** 2) / (6 * delta))
+        return beta
+
+    def compute(self, mu, sigma, observation_list): #TODO: forbid random dropout for the final round
+        self.learn_cnt += 1
+        mask = np.zeros(mu.shape).astype(np.float64)
+        mask[int(np.random.rand()*len(mask))] = 1.0
+        return mask if np.random.rand() < self.eps else (mu + sigma * np.sqrt(self.get_beta()))
+
+
+    
+    
+    

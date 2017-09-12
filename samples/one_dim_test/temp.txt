@@ -1,0 +1,23 @@
+GAMMA:  6
+GAMMA_Y:  3
+GAMMA0: 0.06
+/Users/ar-chen.zhao/Downloads/gp_ucb_python_lib/samples/one_dim_test/output/gaussian_result_1dim.csv is created!
+Edge Num: 2
+[[ 0. -1.  0. ...,  0.  0.  0.]
+ [-1.  0. -1. ...,  0.  0.  0.]
+ [ 0. -1.  0. ...,  0.  0.  0.]
+ ..., 
+ [ 0.  0.  0. ...,  0. -1.  0.]
+ [ 0.  0.  0. ..., -1.  0. -1.]
+ [ 0.  0.  0. ...,  0. -1.  0.]]
+real_T= [None None None None None None None None None None None None None None None
+ None None None None None None None None None None None None None None None
+ None None None None None None None None None None None]
+No.0001 model started!  x: 0.0
+No.0001 model finished! Result was 0.280568
+No.0002 model started!  x: 0.25
+No.0002 model finished! Result was 0.286355
+real_T= [None None None None None None None None None None None None None None None
+ None None None None None 0.2805684373455956 0.2863549828727494 None None
+ None None None None None None None None None None None None None None None
+ None None]
