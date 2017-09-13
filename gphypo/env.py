@@ -89,8 +89,8 @@ class BasicEnvironment(object):
         print(prefix_msg + pair_msg)
 
         result = self.run_model(n_model, processed_x, n_exp=n_exp)
-        assert type(result) == list or type(result) == np.ndarray # This assertion should hold
-        result = result[0]
+        if type(result) == list or type(result) == np.ndarray:
+            result = result[0]
 
         # result_df is preread from files during initialization
         self.result_df.loc[len(self.result_df)] = list(map(str, list(x) + list(processed_x) + [n_exp, result]))

@@ -209,9 +209,9 @@ class GMRF_BO(BaseBO):
         adj_idxes = scipy.sparse.find(self.baseTau0[idx] != 0)[1]
         return random.choice(adj_idxes)
 
-    def learn(self):
+    def learn(self, drop=True):
         T = self.point_info_manager.get_T(excludes_none=True) # T: the means of all the points; either normalized or not
-        grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T)) # this line is crucial
+        grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T, drop=drop)) # this line is crucial
         continue_flg = self.sample(self.X_grid[grid_idx]) # self.sample alters the optimizer's point info manager which contains all the points
         if not continue_flg:
             return False

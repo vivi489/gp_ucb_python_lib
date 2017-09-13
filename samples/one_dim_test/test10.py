@@ -38,7 +38,7 @@ class OneDimGaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         assert x.ndim in [1, 2]
-        y = norm.pdf(x, loc=-3, scale=0.1) + norm.pdf(x, loc=3.5, scale=0.11) + norm.pdf(x, loc=0, scale=1.5)
+        y = norm.pdf(x, loc=-3, scale=0.8) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
         # return y * 1000 + 100
         return y
 
@@ -64,10 +64,11 @@ INITIAL_K = 10
 INITIAL_THETA = 10
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
-ACQUISITION_FUNC = 'ts'  # 'ei'
+ACQUISITION_FUNC = 'en'  # 'ei'
 ACQUISITION_PARAM_DIC = {
     'beta': 5, 
-    'eps': 0.3
+    'eps': 0.3,
+    "par": 0.01
 }
 
 OUTPUT_DIR = os.path.join(os.getcwd(), 'output')
@@ -115,15 +116,15 @@ def main():
         # bo_param_list is a list of every "bo_" column in all the param files of param_names
         # print("bo_param_list", bo_param_list)
     
-    #    env = SinEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, 
-    #                         RESULT_FILENAME=RESULT_FILENAME,
-    #                         OUTPUT_DIR=OUTPUT_DIR,
-    #                         reload=reload)
+    env = SinEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, 
+                         result_filename=RESULT_FILENAME,
+                         output_dir=OUTPUT_DIR,
+                         reload=RELOAD)
     
-    env = OneDimGaussianEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, 
-                                    result_filename=RESULT_FILENAME,
-                                    output_dir=OUTPUT_DIR,
-                                    reload=RELOAD)
+#    env = OneDimGaussianEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, 
+#                                    result_filename=RESULT_FILENAME,
+#                                    output_dir=OUTPUT_DIR,
+#                                    reload=RELOAD)
 
     agent1 = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
                      is_edge_normalized=IS_EDGE_NORMALIZED, 
@@ -144,9 +145,10 @@ def main():
                    normalize_output=NORMALIZE_OUTPUT, 
                    acquisition_func=ACQUISITION_FUNC,
                    acquisition_param_dic=ACQUISITION_PARAM_DIC)
+
     nIter = 100
     for i in range(nIter):
-        flg = agent1.learn()
+        flg = agent1.learn(drop=True if i<nIter-1 else False)
         agent1.plot(output_dir=OUTPUT_DIR)
         agent1.save_mu_sigma_csv()
         if flg == False:
@@ -155,7 +157,7 @@ def main():
             print("bestT =", agent1.bestT)
             break
     plot_1dim(agent1.point_info_manager.T_seq, 'reward.png')
-    subprocess.call(["./convert_pngs2gif.sh demo_iter_%d_eps_%f.gif"%(nIter,ACQUISITION_PARAM_DIC["eps"])], shell=True)
+    subprocess.call(["./convert_pngs2gif.sh demo_%s_iter_%d_eps_%f.gif"%(ACQUISITION_FUNC, nIter,ACQUISITION_PARAM_DIC["eps"])], shell=True)
 
 
 if __name__ == '__main__':

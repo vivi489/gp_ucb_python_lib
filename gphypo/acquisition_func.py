@@ -94,11 +94,11 @@ class EnsembledAC(BaseAcquisitionFunction):
             beta = 2 * np.log(self.d_size * ((self.learn_cnt * np.pi) ** 2) / (6 * delta))
         return beta
 
-    def compute(self, mu, sigma, observation_list): #TODO: forbid random dropout for the final round
+    def compute(self, mu, sigma, observation_list, drop=True): #TODO: forbid monte carlo sampling for the final round
         self.learn_cnt += 1
         mask = np.zeros(mu.shape).astype(np.float64)
         mask[int(np.random.rand()*len(mask))] = 1.0
-        return mask if np.random.rand() < self.eps else (mu + sigma * np.sqrt(self.get_beta()))
+        return mask if (np.random.rand()<self.eps and drop) else (mu + sigma * np.sqrt(self.get_beta()))
 
 
     
