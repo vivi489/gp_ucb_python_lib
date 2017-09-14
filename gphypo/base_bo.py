@@ -181,7 +181,7 @@ class BaseBO(object):
         self.randomly_total_clicked_ratio_list.append(total_clicked_ratio)
 
     # Generate the obserbation value
-    def sample(self, x, n_exp=None): # performs environment sampling on x
+    def sample(self, x, n_exp=None): # performs environment sampling on x #extremely IMPORTANT
         if n_exp is not None and n_exp > 1:
             n1 = self.environment.sample(x, n_exp=n_exp)  # Returns the number of click
             n0 = n_exp - n1  # Calculates the number of unclick
@@ -252,7 +252,7 @@ class BaseBO(object):
                 ax.scatter(X_seq[-1][0], X_seq[-1][1], X_seq[-1][2], c='m', s=50, marker='o', alpha=1.0)
 
         def plot2d_click_distribution():
-            acq_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T())
+            acq_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T(), drop=False)
             mu = self.mu.flatten()
             X, T = self.point_info_manager.get_observed_XT_pair(gets_real=True)
             X_seq, T_seq = self.point_info_manager.X_seq, self.point_info_manager.T_seq
@@ -312,7 +312,7 @@ class BaseBO(object):
                 # lower.set_zlabel(self.acquisition_func_name.upper(), fontdict={'size': 18})
 
         def plot1d_click_distribution():
-            acq_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T())
+            acq_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T(), drop=False)
 
             mu = self.mu.flatten()
             if self.normalize_output:
@@ -400,7 +400,7 @@ class BaseBO(object):
                 ax.scatter(X_seq[-1][0], X_seq[-1][1], X_seq[-1][2], c='m', s=50, marker='o', alpha=1.0)
 
         def plot2d():
-            acq_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T())
+            acq_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T(), drop=False)
             mu = self.mu.flatten()
             X, T = self.point_info_manager.get_observed_XT_pair(gets_real=True)
             X_seq, T_seq = self.point_info_manager.X_seq, self.point_info_manager.T_seq
@@ -459,7 +459,7 @@ class BaseBO(object):
                 # lower.set_zlabel(self.acquisition_func_name.upper(), fontdict={'size': 18})
 
         def plot1d():
-            acq_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T())
+            acq_score = self.acquisition_func.compute(self.mu, self.sigma, self.point_info_manager.get_T(), drop=False)
 
             mu = self.mu.flatten()
             if self.normalize_output:

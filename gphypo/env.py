@@ -40,7 +40,6 @@ class BasicEnvironment(object):
                 with open(result_filename, 'w') as f:
                     columns = self.bo_param_names + self.param_names + ['n_exp'] + ['output']
                     f.write(','.join(columns) + os.linesep)
-
                 print(result_filename + " is created!")
 
         self.result_df = pd.read_csv(result_filename, dtype=str)

@@ -1,5 +1,5 @@
 # coding: utf-8
-import os, subprocess
+import os, subprocess, shutil
 
 import numpy as np
 import pandas as pd
@@ -38,7 +38,7 @@ class OneDimGaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         assert x.ndim in [1, 2]
-        y = norm.pdf(x, loc=-3, scale=0.8) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
+        y = norm.pdf(x, loc=-3, scale=0.15) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
         # return y * 1000 + 100
         return y
 
@@ -83,22 +83,21 @@ kernel = None
 
 # kernel = Matern(nu=2.5)
 
-# ### temporary ###
-import shutil
 
-if os.path.exists(OUTPUT_DIR):
-    shutil.rmtree(OUTPUT_DIR)
-##################
+def test(ACQUISITION_FUNC):
+    # ### temporary ###
+    if os.path.exists(OUTPUT_DIR):
+        shutil.rmtree(OUTPUT_DIR)
+    ##################
+    
+    
+    print('GAMMA: ', GAMMA)
+    print('GAMMA_Y: ', GAMMA_Y)
+    print('GAMMA0:', GAMMA0)
+    
+    mkdir_if_not_exist(OUTPUT_DIR)
+    param_names = sorted([x.replace('.csv', '') for x in os.listdir(PARAMETER_DIR)])
 
-
-print('GAMMA: ', GAMMA)
-print('GAMMA_Y: ', GAMMA_Y)
-print('GAMMA0:', GAMMA0)
-
-mkdir_if_not_exist(OUTPUT_DIR)
-param_names = sorted([x.replace('.csv', '') for x in os.listdir(PARAMETER_DIR)])
-
-def main():
     bo_param2model_param_dic = {} 
     bo_param_list = []
     for param_name in param_names: # param_name is a param file's name
@@ -138,13 +137,13 @@ def main():
                      acquisition_func=ACQUISITION_FUNC,
                      acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
-    agent2 = GP_BO(bo_param_list, env,
-                   gt_available=True, 
-                   my_kernel=kernel, 
-                   burnin=BURNIN,
-                   normalize_output=NORMALIZE_OUTPUT, 
-                   acquisition_func=ACQUISITION_FUNC,
-                   acquisition_param_dic=ACQUISITION_PARAM_DIC)
+#    agent2 = GP_BO(bo_param_list, env,
+#                   gt_available=True, 
+#                   my_kernel=kernel, 
+#                   burnin=BURNIN,
+#                   normalize_output=NORMALIZE_OUTPUT, 
+#                   acquisition_func=ACQUISITION_FUNC,
+#                   acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
     nIter = 100
     for i in range(nIter):
@@ -158,7 +157,8 @@ def main():
             break
     plot_1dim(agent1.point_info_manager.T_seq, 'reward.png')
     subprocess.call(["./convert_pngs2gif.sh demo_%s_iter_%d_eps_%f.gif"%(ACQUISITION_FUNC, nIter,ACQUISITION_PARAM_DIC["eps"])], shell=True)
-
+    os.system("mv ./output/*.gif ./")
 
 if __name__ == '__main__':
-    main()
+    for ac in ["ucb", "pi", "ei", "en", "ts"]:
+        test(ac)

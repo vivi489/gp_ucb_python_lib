@@ -14,12 +14,12 @@ class BaseAcquisitionFunction(object):
         return [x for x in observation_list if x is not None]  # remove None
 
     @abc.abstractmethod
-    def compute(self, mu, sigma, observation_list):
+    def compute(self, mu, sigma, observation_list, **args):
         pass
 
 
 class EI(BaseAcquisitionFunction):
-    def compute(self, mu, sigma, observation_list):
+    def compute(self, mu, sigma, observation_list, **args):
         observation_list = self.preprocess_observation_list(observation_list)
         par = self.param_dic["par"]
         if len(observation_list) == 0:
@@ -31,7 +31,7 @@ class EI(BaseAcquisitionFunction):
 
 
 class PI(BaseAcquisitionFunction):
-    def compute(self, mu, sigma, observation_list):
+    def compute(self, mu, sigma, observation_list, **args):
         observation_list = self.preprocess_observation_list(observation_list)
         par = self.param_dic["par"]
         inc_val = 0
@@ -57,7 +57,7 @@ class UCB(BaseAcquisitionFunction):
             beta = 2 * np.log(self.d_size * ((self.learn_cnt * np.pi) ** 2) / (6 * delta))
         return beta
 
-    def compute(self, mu, sigma, observation_list):
+    def compute(self, mu, sigma, observation_list, **args):
         beta = self.get_beta()
         self.learn_cnt += 1
         return mu + sigma * np.sqrt(beta)
@@ -70,7 +70,7 @@ class Thompson(BaseAcquisitionFunction):
         self.type = type
         self.d_size = d_size
 
-    def compute(self, mu, sigma, observation_list):
+    def compute(self, mu, sigma, observation_list, **args):
         #beta = self.get_beta()
         self.learn_cnt += 1
         return np.random.normal(mu, sigma)
@@ -94,10 +94,11 @@ class EnsembledAC(BaseAcquisitionFunction):
             beta = 2 * np.log(self.d_size * ((self.learn_cnt * np.pi) ** 2) / (6 * delta))
         return beta
 
-    def compute(self, mu, sigma, observation_list, drop=True): #TODO: forbid monte carlo sampling for the final round
+    def compute(self, mu, sigma, observation_list, **kwargs): 
         self.learn_cnt += 1
         mask = np.zeros(mu.shape).astype(np.float64)
         mask[int(np.random.rand()*len(mask))] = 1.0
+        drop = kwargs["drop"]
         return mask if (np.random.rand()<self.eps and drop) else (mu + sigma * np.sqrt(self.get_beta()))
 
 
