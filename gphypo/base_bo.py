@@ -66,7 +66,7 @@ class BaseBO(object):
         elif acquisition_func == 'ts':
             self.acquisition_func = Thompson(acquisition_param_dic)
         else:
-            self.acquisition_func = EnsembledAC(acquisition_param_dic, d_size=self.X_grid.shape[0])
+            self.acquisition_func = EnsembledAC(acquisition_param_dic, type="theorem1", d_size=self.X_grid.shape[0])
 
         self.gt_available = gt_available
         self._set_z()

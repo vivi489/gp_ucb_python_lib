@@ -69,7 +69,7 @@ class GP_BO(BaseBO):
 
     def learn(self, drop=True):
         T = self.point_info_manager.get_T(excludes_none=True)# T: the means of all the points; either normalized or not
-        grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T, drop))# this line is crucial
+        grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T, drop=drop))# this line is crucial
         continue_flg = self.sample(self.X_grid[grid_idx])# self.sample alters the optimizer's point info manager which contains all the points
 
         if not continue_flg:

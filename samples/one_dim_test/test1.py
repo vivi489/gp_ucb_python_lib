@@ -42,7 +42,7 @@ class OneDimGaussianEnvironment(BasicEnvironment):
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         assert x.ndim in [1, 2]
 
-        y = norm.pdf(x, loc=-3, scale=0.8) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
+        y = norm.pdf(x, loc=-3, scale=0.15) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.0)
 
         # return y * 1000 + 100
         return y
@@ -58,7 +58,7 @@ MEAN, STD = 0, 1
 
 reload = False
 # reload = True
-n_iter = 200
+n_iter = 100
 N_EARLY_STOPPING = None
 
 ALPHA = ndim ** 2  # MEAN  # prior:
@@ -74,9 +74,11 @@ INITIAL_K = 10
 INITIAL_THETA = 10
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
-ACQUISITION_FUNC = 'ucb'  # 'ei'
+ACQUISITION_FUNC = 'en'  # 'ei'
 ACQUISITION_PARAM_DIC = {
-    'beta': 5
+    'beta': 5, 
+    'eps': 0.3,
+    "par": 0.01
 }
 
 # ACQUISITION_FUNC = 'ei' # 'ei' or 'pi'

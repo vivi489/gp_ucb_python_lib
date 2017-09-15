@@ -1,5 +1,5 @@
 # coding: utf-8
-import os, subprocess, shutil
+import os, subprocess, shutil, time
 
 import numpy as np
 import pandas as pd
@@ -19,27 +19,29 @@ from gphypo.util import mkdir_if_not_exist, plot_1dim
 
 
 class SinEnvironment(BasicEnvironment):
-    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload, noiseVar=0.025):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         x = np.array(x)
         y = np.sin(x) + x * 0.1
-        # y = x * np.sin(x) * SCALE + OFFSET
-        # y = x * SCALE + OFFSET
+        if not calc_gt:
+            y += np.random.normal(loc=0, scale=np.sqrt(self.noiseVar))
         if y.shape == (1,):
             return y[0]
         return y
 
 
 class OneDimGaussianEnvironment(BasicEnvironment):
-    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload, noiseVar=0.025):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
+        self.noiseVar = noiseVar
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         assert x.ndim in [1, 2]
         y = norm.pdf(x, loc=-3, scale=0.15) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
-        # return y * 1000 + 100
+        if not calc_gt:
+            y += np.random.normal(loc=0, scale=np.sqrt(self.noiseVar))
         return y
 
 
@@ -67,14 +69,13 @@ UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 #ACQUISITION_FUNC = 'en'  # 'ei'
 ACQUISITION_PARAM_DIC = {
     'beta': 5, 
-    'eps': 0.3,
+    'eps': 0.10,
     "par": 0.01,
     "tsFactor": 3.0
 }
 
 OUTPUT_DIR = os.path.join(os.getcwd(), 'output')
 PARAMETER_DIR = os.path.join('param_dir', 'csv_files')
-RESULT_FILENAME = os.path.join(OUTPUT_DIR, 'gaussian_result_1dim.csv')
 
 ########################
 
@@ -86,12 +87,15 @@ kernel = None
 
 
 def test(ACQUISITION_FUNC):
+    
+    RESULT_FILENAME = os.path.join(OUTPUT_DIR, 'gaussian_result_1dim.csv')
+    
     # ### temporary ###
     if os.path.exists(OUTPUT_DIR):
         shutil.rmtree(OUTPUT_DIR)
     ##################
     
-    
+    np.random.seed(int(time.time()))
     print('GAMMA: ', GAMMA)
     print('GAMMA_Y: ', GAMMA_Y)
     print('GAMMA0:', GAMMA0)
@@ -126,25 +130,25 @@ def test(ACQUISITION_FUNC):
                                     output_dir=OUTPUT_DIR,
                                     reload=RELOAD)
 
-    agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
-                     is_edge_normalized=IS_EDGE_NORMALIZED, 
-                     gt_available=True, 
-                     n_early_stopping=N_EARLY_STOPPING,
-                     burnin=BURNIN,
-                     normalize_output=NORMALIZE_OUTPUT, 
-                     update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
-                     initial_k=INITIAL_K, 
-                     initial_theta=INITIAL_THETA, 
-                     acquisition_func=ACQUISITION_FUNC,
-                     acquisition_param_dic=ACQUISITION_PARAM_DIC)
+#    agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
+#                     is_edge_normalized=IS_EDGE_NORMALIZED, 
+#                     gt_available=True, 
+#                     n_early_stopping=N_EARLY_STOPPING,
+#                     burnin=BURNIN,
+#                     normalize_output=NORMALIZE_OUTPUT, 
+#                     update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
+#                     initial_k=INITIAL_K, 
+#                     initial_theta=INITIAL_THETA, 
+#                     acquisition_func=ACQUISITION_FUNC,
+#                     acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
-#    agent = GP_BO(bo_param_list, env,
-#                   gt_available=True, 
-#                   my_kernel=kernel, 
-#                   burnin=BURNIN,
-#                   normalize_output=NORMALIZE_OUTPUT, 
-#                   acquisition_func=ACQUISITION_FUNC,
-#                   acquisition_param_dic=ACQUISITION_PARAM_DIC)
+    agent = GP_BO(bo_param_list, env,
+                   gt_available=True, 
+                   my_kernel=kernel, 
+                   burnin=BURNIN,
+                   normalize_output=NORMALIZE_OUTPUT, 
+                   acquisition_func=ACQUISITION_FUNC,
+                   acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
     nIter = 100
     for i in range(nIter):
@@ -154,7 +158,7 @@ def test(ACQUISITION_FUNC):
         if flg == False:
             print("Early Stopping!!!")
             print("bestX =", agent.bestX)
-            print("bestT =", agent.bestT)
+            print("bestT =", agent.bestT)   
             break
     plot_1dim(agent.point_info_manager.T_seq, 'reward.png')
     subprocess.call(["./convert_pngs2gif.sh demo_%s_iter_%d_eps_%f.gif"%(ACQUISITION_FUNC, nIter, ACQUISITION_PARAM_DIC["eps"])], shell=True)
@@ -163,3 +167,4 @@ def test(ACQUISITION_FUNC):
 if __name__ == '__main__':
     for ac in ["ucb", "pi", "ei", "en", "ts"]:
         test(ac)
+

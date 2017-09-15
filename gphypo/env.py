@@ -83,10 +83,11 @@ class BasicEnvironment(object):
         n_model = self.result_df.shape[0] + 1
         processed_x = self.preprocess_x(x)
         
-        prefix_msg = 'No.%04d model started!  ' % n_model
-        pair_msg = ', '.join(['{}: {}'.format(k, v) for k, v in zip(self.param_names, processed_x)])
-        print(prefix_msg + pair_msg)
-
+        #prefix_msg = 'No.%04d model started!  ' % n_model
+        #pair_msg = ', '.join(['{}: {}'.format(k, v) for k, v in zip(self.param_names, processed_x)])
+        #print(prefix_msg + pair_msg)
+        
+        #this is where actual sampling occurs
         result = self.run_model(n_model, processed_x, n_exp=n_exp)
         if type(result) == list or type(result) == np.ndarray:
             result = result[0]
@@ -96,8 +97,8 @@ class BasicEnvironment(object):
         # update and overwrite the file
         self.result_df.to_csv(self.result_filename, index=False) 
         
-        msg = 'No.%04d model finished! Result was %f' % (n_model, result)
-        print(msg)
+        #msg = 'No.%04d model finished! Result was %f' % (n_model, result)
+        #print(msg)
         return result
 
 

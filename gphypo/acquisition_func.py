@@ -69,11 +69,13 @@ class Thompson(BaseAcquisitionFunction):
         self.learn_cnt = 1
         self.type = type
         self.d_size = d_size
+        self.tsFactor = self.param_dic["tsFactor"]
+        np.random.seed(int(time.time()))
 
     def compute(self, mu, sigma, observation_list, **args):
         #beta = self.get_beta()
         self.learn_cnt += 1
-        return np.random.normal(mu, sigma)
+        return np.random.normal(mu, sigma * self.tsFactor)
 
 
 class EnsembledAC(BaseAcquisitionFunction):
@@ -83,6 +85,7 @@ class EnsembledAC(BaseAcquisitionFunction):
         self.type = type
         self.d_size = d_size
         self.eps = self.param_dic['eps'] # interval [0, 1]
+        self.tsFactor = self.param_dic["tsFactor"]
         np.random.seed(int(time.time()))
 
     def get_beta(self):
@@ -96,12 +99,11 @@ class EnsembledAC(BaseAcquisitionFunction):
 
     def compute(self, mu, sigma, observation_list, **kwargs): 
         self.learn_cnt += 1
-        mask = np.zeros(mu.shape).astype(np.float64)
-        mask[int(np.random.rand()*len(mask))] = 1.0
+        #mask = np.zeros(mu.shape).astype(np.float64)
+        #mask[int(np.random.rand()*len(mask))] = 1.0
         drop = kwargs["drop"]
-        return mask if (np.random.rand()<self.eps and drop) else (mu + sigma * np.sqrt(self.get_beta()))
+        return np.random.normal(mu, sigma * self.tsFactor) if (np.random.rand()<self.eps and drop) else (mu + sigma * np.sqrt(self.get_beta()))
 
 
-    
-    
+
     
