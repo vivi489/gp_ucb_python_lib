@@ -116,7 +116,7 @@ class BaseBO(object):
         for key, row in self.environment.result_df.iterrows():
             x = row[self.environment.bo_param_names].as_matrix()
             t = float(row['output'])
-            print(x, t, row.n_exp)
+            #print(x, t, row.n_exp)
             n_exp = round(float(row.n_exp))
             if n_exp > 1:
                 n1 = t
@@ -128,12 +128,12 @@ class BaseBO(object):
             else:
                 self.point_info_manager.update(x, {t: 1})
 
-        print("Finished reloading csv.")
+        #print("Finished reloading csv.")
 
     def calc_true_mean_std(self):
         assert self.gt_available == True
-        print(self.X_grid)
-        print(self.X_grid.shape)
+        #print(self.X_grid)
+        #print(self.X_grid.shape)
         sampled_y = np.array(self.environment.sample(self.X_grid, get_ground_truth=True))
 
         return sampled_y.mean(), sampled_y.std()
@@ -151,7 +151,7 @@ class BaseBO(object):
         jar_fn = os.path.join(mu2ratio_dir, 'mu2ratio.jar')
         cmd = "java -jar {} {} {}".format(jar_fn, mu_sigma_csv_fn, ratio_csv_fn)
         subprocess.call(cmd, shell=True)
-        print('mu2ratio finished!!!')
+        #print('mu2ratio finished!!!')
 
     def sample_using_ratio_csv(self, ratio_csv_fn):
         ratio_df = pd.read_csv(ratio_csv_fn, index_col=0, names=['ratio'])
@@ -221,7 +221,7 @@ class BaseBO(object):
 
         self.point_info_df = point_info_df
 
-        print('%s was saved!' % outfn)
+        #print('%s was saved!' % outfn)
 
     # TODO fix this
     def plot_click_distribution(self, output_dir):
@@ -334,8 +334,8 @@ class BaseBO(object):
                             mu.reshape(self.meshgrid[0].shape),
                             s=size_list, alpha=0.5, color='r')
 
-                print(clicked_list.shape)
-                print(np.argmax(clicked_list))
+                #print(clicked_list.shape)
+                #print(np.argmax(clicked_list))
 
             else:
                 fig = plt.figure()

@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
+
 from gphypo.env import BasicEnvironment
 from gphypo.gmrf_bo import GMRF_BO
 from gphypo.gp_bo import GP_BO
@@ -68,13 +69,13 @@ UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
 #ACQUISITION_FUNC = 'en'  # 'ei'
 ACQUISITION_PARAM_DIC = {
-    'beta': 5, 
-    'eps': 0.10,
-    "par": 0.01,
-    "tsFactor": 3.0
+    'beta': 5, #for "ucb"
+    'eps': 0.10, #for "en"
+    "par": 0.01, 
+    "tsFactor": 3.0 #for "en" and "ts"
 }
 
-OUTPUT_DIR = os.path.join(os.getcwd(), 'output')
+
 PARAMETER_DIR = os.path.join('param_dir', 'csv_files')
 
 ########################
@@ -86,15 +87,14 @@ kernel = None
 # kernel = Matern(nu=2.5)
 
 
-def test(ACQUISITION_FUNC, iterCount):
-    
-    RESULT_FILENAME = os.path.join(OUTPUT_DIR, 'gaussian_result_1dim.csv')
-    
+def singleTest(ACQUISITION_FUNC, iterCount):
+    print("%s: iter %d"%(ACQUISITION_FUNC, iterCount))
+    OUTPUT_DIR = os.path.join(os.getcwd(), 'output')
     # ### temporary ###
     if os.path.exists(OUTPUT_DIR):
         shutil.rmtree(OUTPUT_DIR)
     ##################
-    
+    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_1dim_%s_iterCount_%d.csv"%(ACQUISITION_FUNC, iterCount))
     np.random.seed(int(time.time()))
     print('GAMMA: ', GAMMA)
     print('GAMMA_Y: ', GAMMA_Y)
@@ -165,7 +165,21 @@ def test(ACQUISITION_FUNC, iterCount):
     os.system("mv ./output/*.gif ./eval")
     os.system("mv ./output/*.csv ./eval")
 
-if __name__ == '__main__':
-    for ac in ["ucb", "pi", "ei", "en", "ts"]:
-        test(ac)
 
+def testIterations(acFunc, nIter):
+    iterCount = 0
+    while iterCount < nIter:
+        singleTest(acFunc, iterCount)
+        iterCount += 1
+    
+
+if __name__ == '__main__':
+#    for ac in :#["ucb", "pi", "ei", "en", "ts"]:
+#        iterCount = 0
+#        while iterCount < 50:
+#            test(ac, iterCount)
+#            iterCount += 1
+    acFuncs = ["ei", "en"]
+    nIters = [50] * len(acFuncs)
+    for acFuncs, nIters in zip(acFuncs, nIters):
+        testIterations(acFuncs, nIters)

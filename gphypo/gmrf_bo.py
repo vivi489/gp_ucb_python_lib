@@ -117,8 +117,8 @@ class GMRF_BO(BaseBO):
         tau0 = - create_adjacency_mat(self.ndim_list)
         row_sum_list = - mat_flatten(tau0.sum(axis=0))
         self.diff_list = row_sum_list.max() - row_sum_list
-        print("Edge Num: %s" % np.count_nonzero(self.diff_list))
-        print(tau0.toarray())
+        #print("Edge Num: %s" % np.count_nonzero(self.diff_list))
+        #print(tau0.toarray())
         self.is_edge_normalized = is_edge_normalized
 
         # # This changes the edge weight. This seems to be not so effective(Result does not change)
@@ -176,7 +176,7 @@ class GMRF_BO(BaseBO):
         self.bestX = X_seq[np.argmax(T_seq)]
 
         self.does_pairwise_sampling = False
-        print('%d burins has finised!' % burnin)
+        #print('%d burins has finised!' % burnin)
 
     def calc_tau(self):
         gamma = self.GAMMA
@@ -238,7 +238,7 @@ class GMRF_BO(BaseBO):
         n_total_clicked = self.environment.result_df.output.values[-self.n_points:].astype(np.float64).sum()
         total_clicked_ratio = n_total_clicked / self.n_ctr
         self.total_clicked_ratio_list.append(total_clicked_ratio)
-        print('ratio: %s' % total_clicked_ratio)
+        #print('ratio: %s' % total_clicked_ratio)
 
         return True
 
@@ -280,9 +280,9 @@ class GMRF_BO(BaseBO):
             self.GAMMA0 = self.GAMMA * 0.01
         self.ALPHA = np.mean(self.point_info_manager.get_T(excludes_none=True))
 
-        print("New GammaY: %s" % self.GAMMA_Y)
-        print("New Gamma: %s" % self.GAMMA)
-        print("New ALPHA: %s" % self.ALPHA)
+        #print("New GammaY: %s" % self.GAMMA_Y)
+        #print("New Gamma: %s" % self.GAMMA)
+        #print("New ALPHA: %s" % self.ALPHA)
 
     # TODO this method does not work well and caliculation is heavy...
     def update_hyperparams_by_simple_loglikelihood(self):
@@ -311,7 +311,7 @@ class GMRF_BO(BaseBO):
 
         Lambda = A00 - (A01.T).dot(np.linalg.inv(A11).dot(A01))
 
-        print(Lambda.shape, A.shape)
+        #print(Lambda.shape, A.shape)
 
         t = y_hat.dot(Lambda.dot(y_hat[:, np.newaxis]))[0] / 2
 
@@ -323,15 +323,15 @@ class GMRF_BO(BaseBO):
 
         if self.normalize_output is None:
             self.ALPHA = np.mean(self.point_info_manager.get_T(excludes_none=True))
-            print("New ALPHA: %s" % self.ALPHA)
+            #print("New ALPHA: %s" % self.ALPHA)
 
-        print("New GammaY: %s" % self.GAMMA_Y)
-        print("New Gamma: %s" % self.GAMMA)
-        print("t: %s" % t)
-        print('k: %s, theta: %s' % (self.k, self.theta))
+#        print("New GammaY: %s" % self.GAMMA_Y)
+#        print("New Gamma: %s" % self.GAMMA)
+#        print("t: %s" % t)
+#        print('k: %s, theta: %s' % (self.k, self.theta))
 
         log_likelihood = (y_hat.dot(Lambda.dot(y_hat[:, np.newaxis])) - np.log(np.linalg.det(Lambda) + 0.00001))[0]
-        print('log_likelihood: %s' % log_likelihood)
+#        print('log_likelihood: %s' % log_likelihood)
 
     # TODO this method does not work well...
     def update_hyperparams_by_loglikelihood(self):
@@ -353,14 +353,14 @@ class GMRF_BO(BaseBO):
         self.GAMMA, self.GAMMA_Y = optima[np.argmin(lml_values)][0]
         self.GAMMA0 = 0.01 * self.GAMMA
 
-        print("New GammaY: %s" % self.GAMMA_Y)
-        print("New Gamma: %s" % self.GAMMA)
+#        print("New GammaY: %s" % self.GAMMA_Y)
+#        print("New Gamma: %s" % self.GAMMA)
 
         self.ALPHA = self.point_info_manager.get_real_T(excludes_none=True).mean()
-        print("New ALPHA: %s" % self.ALPHA)
+#        print("New ALPHA: %s" % self.ALPHA)
 
         self.log_marginal_likelihood_value_ = -np.min(lml_values)
-        print("log_marginal_likelihood: %s" % self.log_marginal_likelihood_value_)
+#        print("log_marginal_likelihood: %s" % self.log_marginal_likelihood_value_)
 
     # TODO this method does not work well...
     def log_marginal_likelihood(self, eval_gradient=False):
@@ -404,7 +404,7 @@ class GMRF_BO(BaseBO):
         log_likelihood = mu_tilda.dot(M_lambda).dot(mu_tilda[:, np.newaxis])
 
         # log_likelihood = -log_likelihood
-        print('log_likelihood: %f' % log_likelihood)
+#        print('log_likelihood: %f' % log_likelihood)
 
         Lambda = B - B.dot(A_inv.dot(B))
         Lambda_inv = np.linalg.inv(Lambda)
@@ -421,7 +421,7 @@ class GMRF_BO(BaseBO):
             np.trace(Lambda_inv.dot(tmpMat) + mean_r_grid.dot(tmpMat.dot(mean_r_grid[:, np.newaxis]))[0]))
 
         log_likelihood_gradient = np.array([log_likelihood_grad_gamma, log_likelihood_grad_gamma_y])
-        print('log_likelihood_grad: %s' % log_likelihood_gradient)
+#        print('log_likelihood_grad: %s' % log_likelihood_gradient)
 
         if eval_gradient:
             return log_likelihood, log_likelihood_gradient

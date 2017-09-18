@@ -65,7 +65,7 @@ class GP_BO(BaseBO):
 
         self.gp.fit(npX, npT)
         self.mu, self.sigma = self.gp.predict(self.X_grid, return_std=True)
-        print('%d burins has finished!' % burnin)
+#        print('%d burins has finished!' % burnin)
 
     def learn(self, drop=True):
         T = self.point_info_manager.get_T(excludes_none=True)# T: the means of all the points; either normalized or not
@@ -81,5 +81,5 @@ class GP_BO(BaseBO):
 
         self.gp.fit(npX, npT)
         self.mu, self.sigma = self.gp.predict(self.X_grid, return_std=True)
-        print(str(self.gp.kernel))
+#        print(str(self.gp.kernel))
         return True
