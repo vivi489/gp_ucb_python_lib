@@ -86,7 +86,7 @@ kernel = None
 # kernel = Matern(nu=2.5)
 
 
-def test(ACQUISITION_FUNC):
+def test(ACQUISITION_FUNC, iterCount):
     
     RESULT_FILENAME = os.path.join(OUTPUT_DIR, 'gaussian_result_1dim.csv')
     
@@ -160,9 +160,10 @@ def test(ACQUISITION_FUNC):
             print("bestX =", agent.bestX)
             print("bestT =", agent.bestT)   
             break
-    plot_1dim(agent.point_info_manager.T_seq, 'reward.png')
-    subprocess.call(["./convert_pngs2gif.sh demo_%s_iter_%d_eps_%f.gif"%(ACQUISITION_FUNC, nIter, ACQUISITION_PARAM_DIC["eps"])], shell=True)
-    os.system("mv ./output/*.gif ./")
+    #plot_1dim(agent.point_info_manager.T_seq, 'reward.png')
+    subprocess.call(["./convert_pngs2gif.sh demo_%s_iterCount_%d.gif"%(ACQUISITION_FUNC, iterCount)], shell=True)
+    os.system("mv ./output/*.gif ./eval")
+    os.system("mv ./output/*.csv ./eval")
 
 if __name__ == '__main__':
     for ac in ["ucb", "pi", "ei", "en", "ts"]:
