@@ -4,6 +4,8 @@ import os, subprocess, shutil, time
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
+from multiprocessing import Process
+from sklearn.gaussian_process.kernels import Matern, RBF, ConstantKernel as C
 
 
 from gphypo.env import BasicEnvironment
@@ -22,6 +24,7 @@ from gphypo.util import mkdir_if_not_exist, plot_1dim
 class SinEnvironment(BasicEnvironment):
     def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload, noiseVar=0.025):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
+        self.noiseVar = noiseVar
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         x = np.array(x)
@@ -82,19 +85,19 @@ PARAMETER_DIR = os.path.join('param_dir', 'csv_files')
 
 kernel = None
 #
-# kernel = C(1) * RBF(2)  # works well, but not so sharp
+#kernel = C(1) * RBF(2)  # works well, but not so sharp
 
 # kernel = Matern(nu=2.5)
 
 
-def singleTest(ACQUISITION_FUNC, iterCount):
-    print("%s: iter %d"%(ACQUISITION_FUNC, iterCount))
-    OUTPUT_DIR = os.path.join(os.getcwd(), 'output')
+def singleTest(ACQUISITION_FUNC, trialCount):
+    print("%s: trial %d"%(ACQUISITION_FUNC, trialCount))
+    OUTPUT_DIR = os.path.join(os.getcwd(), 'output_%s'%ACQUISITION_FUNC)
     # ### temporary ###
     if os.path.exists(OUTPUT_DIR):
         shutil.rmtree(OUTPUT_DIR)
     ##################
-    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_1dim_%s_iterCount_%d.csv"%(ACQUISITION_FUNC, iterCount))
+    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_1dim_%s_iterCount_%d.csv"%(ACQUISITION_FUNC, trialCount))
     np.random.seed(int(time.time()))
     print('GAMMA: ', GAMMA)
     print('GAMMA_Y: ', GAMMA_Y)
@@ -129,7 +132,7 @@ def singleTest(ACQUISITION_FUNC, iterCount):
                                     result_filename=RESULT_FILENAME,
                                     output_dir=OUTPUT_DIR,
                                     reload=RELOAD)
-
+    
 #    agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
 #                     is_edge_normalized=IS_EDGE_NORMALIZED, 
 #                     gt_available=True, 
@@ -150,27 +153,28 @@ def singleTest(ACQUISITION_FUNC, iterCount):
                    acquisition_func=ACQUISITION_FUNC,
                    acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
-    nIter = 100
+    nIter = 1000
     for i in range(nIter):
         flg = agent.learn(drop=True if i<nIter-1 else False)
-        agent.plot(output_dir=OUTPUT_DIR)
-        agent.save_mu_sigma_csv()
+        #agent.plot(output_dir=OUTPUT_DIR) #plotting causes deadlock among processes
+        #agent.save_mu_sigma_csv() #this line causes deadlock among processes (I/O contention)
         if flg == False:
             print("Early Stopping!!!")
             print("bestX =", agent.bestX)
             print("bestT =", agent.bestT)   
             break
     #plot_1dim(agent.point_info_manager.T_seq, 'reward.png')
-    subprocess.call(["./convert_pngs2gif.sh demo_%s_iterCount_%d.gif"%(ACQUISITION_FUNC, iterCount)], shell=True)
-    os.system("mv ./output/*.gif ./eval")
-    os.system("mv ./output/*.csv ./eval")
+    #subprocess.call(["./convert_pngs2gif.sh ./output/res*.png demo_%s_iterCount_%d.gif"%(ACQUISITION_FUNC, iterCount)])
+    #os.system("mv %s/*.gif ./eval/"%OUTPUT_DIR)
+    os.system("mv %s/*.csv ./eval/"%OUTPUT_DIR)
 
 
-def testIterations(acFunc, nIter):
-    iterCount = 0
-    while iterCount < nIter:
-        singleTest(acFunc, iterCount)
-        iterCount += 1
+def testForTrials(acFunc, nIter):
+    trialCount = 0
+    while trialCount < nIter:
+        #np.random.seed(int(time.time()))
+        singleTest(acFunc, trialCount)
+        trialCount += 1
     
 
 if __name__ == '__main__':
@@ -179,7 +183,16 @@ if __name__ == '__main__':
 #        while iterCount < 50:
 #            test(ac, iterCount)
 #            iterCount += 1
-    acFuncs = ["ei", "en"]
-    nIters = [50] * len(acFuncs)
-    for acFuncs, nIters in zip(acFuncs, nIters):
-        testIterations(acFuncs, nIters)
+    mkdir_if_not_exist(os.path.join(os.getcwd(), "eval"))
+        
+    acFuncs = ["ucb", "pi", "ei", "en", "ts"]
+    nTrials = [30] * len(acFuncs)
+    jobs = []
+    for acFuncs, nTrial in zip(acFuncs, nTrials):
+        #testForTrials(acFuncs, nTrial)
+        p = Process(target=testForTrials, args=(acFuncs, nTrial))
+        jobs.append(p)
+        p.start()
+    
+    for p in jobs:
+        p.join()

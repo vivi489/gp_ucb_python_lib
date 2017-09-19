@@ -60,9 +60,6 @@ class GP_BO(BaseBO):
             self.sample(adj_coordinate)
 
         npX, npT = self.point_info_manager.get_observed_XT_pair(gets_real=True)
-        npX = np.array(npX).astype(np.float64)
-        npT = np.array(npT).astype(np.float64)
-
         self.gp.fit(npX, npT)
         self.mu, self.sigma = self.gp.predict(self.X_grid, return_std=True)
 #        print('%d burins has finished!' % burnin)
@@ -78,8 +75,11 @@ class GP_BO(BaseBO):
         npX, npT = self.point_info_manager.get_observed_XT_pair(gets_real=False)
         npX = np.array(npX).astype(np.float64)
         npT = np.array(npT).astype(np.float64)
-
-        self.gp.fit(npX, npT)
+        
+        try:
+            self.gp.fit(npX, npT)
+        except ValueError:
+            print("X===",npX, "Y===",npT)
         self.mu, self.sigma = self.gp.predict(self.X_grid, return_std=True)
 #        print(str(self.gp.kernel))
         return True

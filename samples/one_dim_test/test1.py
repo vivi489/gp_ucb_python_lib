@@ -1,4 +1,3 @@
-# coding: utf-8
 import os
 
 import numpy as np
@@ -20,33 +19,31 @@ OFFSET = 100000
 
 
 class SinEnvironment(BasicEnvironment):
-    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload, noiseVar=0.025):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
-
+        self.noiseVar = noiseVar
+        
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         x = np.array(x)
         y = np.sin(x) + x * 0.1
-        # y = x * np.sin(x) * SCALE + OFFSET
-        # y = x * SCALE + OFFSET
-
+        if not calc_gt:
+            y += np.random.normal(loc=0, scale=np.sqrt(self.noiseVar))
         if y.shape == (1,):
             return y[0]
-
         return y
 
 
 class OneDimGaussianEnvironment(BasicEnvironment):
-    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload, noiseVar=0.025):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
+        self.noiseVar = noiseVar
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         assert x.ndim in [1, 2]
-
-        y = norm.pdf(x, loc=-3, scale=0.15) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.0)
-
-        # return y * 1000 + 100
+        y = norm.pdf(x, loc=-3, scale=0.15) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
+        if not calc_gt:
+            y += np.random.normal(loc=0, scale=np.sqrt(self.noiseVar))
         return y
-
 
 ########################
 ndim = 1
@@ -58,7 +55,7 @@ MEAN, STD = 0, 1
 
 reload = False
 # reload = True
-n_iter = 100
+n_iter = 200
 N_EARLY_STOPPING = None
 
 ALPHA = ndim ** 2  # MEAN  # prior:
@@ -74,10 +71,9 @@ INITIAL_K = 10
 INITIAL_THETA = 10
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
-ACQUISITION_FUNC = 'en'  # 'ei'
+ACQUISITION_FUNC = 'pi'  # 'ei'
 ACQUISITION_PARAM_DIC = {
-    'beta': 5, 
-    'eps': 0.3,
+    'beta': 5,
     "par": 0.01
 }
 
@@ -114,18 +110,15 @@ mkdir_if_not_exist(output_dir)
 
 param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
 
-bo_param2model_param_dic = {} 
+bo_param2model_param_dic = {}
 
 bo_param_list = []
-for param_name in param_names: # param_name is a param file's name
-    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str) #makes index column type str instead of float
-    
-    # param_df has a column of its csv file name, e.g. "x"
+for param_name in param_names:
+    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
     bo_param_list.append(param_df[param_name].values)
+
     param_df.set_index(param_name, inplace=True)
-    
-    #dict: param_file name -> column dict (the column with the name "bo_"+param_file name)
-    #column dict: index column element -> cell value #index column is type str
+
     bo_param2model_param_dic[param_name] = param_df.to_dict()['bo_' + param_name]
 
 
@@ -143,10 +136,10 @@ def main():
                     normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
                     initial_k=INITIAL_K, initial_theta=INITIAL_THETA, acquisition_func=ACQUISITION_FUNC,
                     acquisition_param_dic=ACQUISITION_PARAM_DIC)
-    #
-    # agent = GP_BO(bo_param_list, env, gt_available=True, my_kernel=kernel, burnin=BURNIN,
-    #               normalize_output=NORMALIZE_OUTPUT, acquisition_func=ACQUISITION_FUNC,
-    #               acquisition_param_dic=ACQUISITION_PARAM_DIC)
+    
+#    agent = GP_BO(bo_param_list, env, gt_available=True, my_kernel=kernel, burnin=BURNIN,
+#                   normalize_output=NORMALIZE_OUTPUT, acquisition_func=ACQUISITION_FUNC,
+#                   acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
     # for i in tqdm(range(n_iter)):
     for i in range(n_iter):

@@ -70,7 +70,6 @@ class Thompson(BaseAcquisitionFunction):
         self.type = type
         self.d_size = d_size
         self.tsFactor = self.param_dic["tsFactor"]
-        np.random.seed(int(time.time()))
 
     def compute(self, mu, sigma, observation_list, **args):
         #beta = self.get_beta()
@@ -86,7 +85,6 @@ class EnsembledAC(BaseAcquisitionFunction):
         self.d_size = d_size
         self.eps = self.param_dic['eps'] # interval [0, 1]
         self.tsFactor = self.param_dic["tsFactor"]
-        np.random.seed(int(time.time()))
 
     def get_beta(self):
         global beta

@@ -10,6 +10,7 @@ from gphypo.gmrf_bo import GMRF_BO
 from gphypo.gp_bo import GP_BO
 from gphypo.normalization import zero_mean_unit_var_normalization
 from gphypo.util import mkdir_if_not_exist, plot_1dim
+from sklearn.gaussian_process.kernels import Matern, RBF, ConstantKernel as C
 
 # from sklearn.gaussian_process.kernels import ConstantKernel as C, Matern
 # from tqdm import tqdm
@@ -19,29 +20,31 @@ from gphypo.util import mkdir_if_not_exist, plot_1dim
 
 
 class SinEnvironment(BasicEnvironment):
-    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload, noiseVar=0.025):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
-
+        self.noiseVar = noiseVar
+        
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         x = np.array(x)
         y = np.sin(x) + x * 0.1
-        # y = x * np.sin(x) * SCALE + OFFSET
-        # y = x * SCALE + OFFSET
+        if not calc_gt:
+            y += np.random.normal(loc=0, scale=np.sqrt(self.noiseVar))
         if y.shape == (1,):
             return y[0]
         return y
 
 
 class OneDimGaussianEnvironment(BasicEnvironment):
-    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload, noiseVar=0.025):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
+        self.noiseVar = noiseVar
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         assert x.ndim in [1, 2]
         y = norm.pdf(x, loc=-3, scale=0.15) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
-        # return y * 1000 + 100
+        if not calc_gt:
+            y += np.random.normal(loc=0, scale=np.sqrt(self.noiseVar))
         return y
-
 
 ########################
 ndim = 1
@@ -80,7 +83,7 @@ RESULT_FILENAME = os.path.join(OUTPUT_DIR, 'gaussian_result_1dim.csv')
 
 kernel = None
 #
-# kernel = C(1) * RBF(2)  # works well, but not so sharp
+#kernel = C(1) * RBF(1)  # works well, but not so sharp
 
 # kernel = Matern(nu=2.5)
 
@@ -126,27 +129,27 @@ def test(ACQUISITION_FUNC):
                                     output_dir=OUTPUT_DIR,
                                     reload=RELOAD)
 
-    agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
-                     is_edge_normalized=IS_EDGE_NORMALIZED, 
-                     gt_available=True, 
-                     n_early_stopping=N_EARLY_STOPPING,
-                     burnin=BURNIN,
-                     normalize_output=NORMALIZE_OUTPUT, 
-                     update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
-                     initial_k=INITIAL_K, 
-                     initial_theta=INITIAL_THETA, 
-                     acquisition_func=ACQUISITION_FUNC,
-                     acquisition_param_dic=ACQUISITION_PARAM_DIC)
+#    agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
+#                     is_edge_normalized=IS_EDGE_NORMALIZED, 
+#                     gt_available=True, 
+#                     n_early_stopping=N_EARLY_STOPPING,
+#                     burnin=BURNIN,
+#                     normalize_output=NORMALIZE_OUTPUT, 
+#                     update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
+#                     initial_k=INITIAL_K, 
+#                     initial_theta=INITIAL_THETA, 
+#                     acquisition_func=ACQUISITION_FUNC,
+#                     acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
-#    agent = GP_BO(bo_param_list, env,
-#                   gt_available=True, 
-#                   my_kernel=kernel, 
-#                   burnin=BURNIN,
-#                   normalize_output=NORMALIZE_OUTPUT, 
-#                   acquisition_func=ACQUISITION_FUNC,
-#                   acquisition_param_dic=ACQUISITION_PARAM_DIC)
+    agent = GP_BO(bo_param_list, env,
+                   gt_available=True, 
+                   my_kernel=kernel, 
+                   burnin=BURNIN,
+                   normalize_output=NORMALIZE_OUTPUT, 
+                   acquisition_func=ACQUISITION_FUNC,
+                   acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
-    nIter = 100
+    nIter = 200
     for i in range(nIter):
         flg = agent.learn(drop=True if i<nIter-1 else False)
         agent.plot(output_dir=OUTPUT_DIR)
@@ -161,5 +164,5 @@ def test(ACQUISITION_FUNC):
     os.system("mv ./output/*.gif ./")
 
 if __name__ == '__main__':
-    for ac in ["ucb", "pi", "ei", "en", "ts"]:
+    for ac in ["ts"]:#["ucb", "pi", "ei", "en", "ts"]:
         test(ac)

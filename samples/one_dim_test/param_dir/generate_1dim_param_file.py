@@ -6,7 +6,7 @@ import pandas as pd
 from gphypo.util import mkdir_if_not_exist
 
 bo_param_dic = {
-    'x': np.linspace(-5, 5, 1000)
+    'x': np.linspace(-5.0, 5.0, 1000)
 }
 
 bo_param2gaussian_param = {

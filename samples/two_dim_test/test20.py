@@ -1,10 +1,10 @@
 # coding: utf-8
-import os
+import os, shutil, time
 
 import numpy as np
 import pandas as pd
 from scipy.stats import multivariate_normal
-
+from multiprocessing import Process
 from sklearn.gaussian_process.kernels import Matern, RBF, ConstantKernel as C
 #from gphypo.egmrf_ucb import create_normalized_X_grid
 # from gphypo.egmrf_ucb import EGMRF_UCB
@@ -15,13 +15,11 @@ from gphypo.normalization import zero_mean_unit_var_normalization
 from gphypo.util import mkdir_if_not_exist
 
 
-# from tqdm import tqdm_notebook as tqdm
-from sklearn.gaussian_process.kernels import Matern
-
 
 class GaussianEnvironment(BasicEnvironment):
-    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload, noiseVar=0.025):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
+        self.noiseVar = noiseVar
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
 
@@ -42,34 +40,33 @@ class GaussianEnvironment(BasicEnvironment):
         # cov3 = [[0.6, 0], [0, 0.6]]
 
         mean3 = [3, -3]
-        cov3 = [[0.7, 0], [0, 0.7]]
+        cov3 = [[0.3, 0], [0, 0.3]]
 
         #mean4 = [0, 0]
         #cov4 = [[0.1, 0], [0, 0.1]]
 
         assert x.ndim in [1, 2]
-
         y = multivariate_normal.pdf(x, mean=mean1, cov=cov1) + multivariate_normal.pdf(x, mean=mean2, cov=cov2) \
             + multivariate_normal.pdf(x, mean=mean3,
                                       cov=cov3)  # - multivariate_normal.pdf(x, mean=mean4, cov=cov4) * 0.1
-
-        # return y * 1000 + 100
+        if not calc_gt:
+            y += np.random.normal(loc=0, scale=np.sqrt(self.noiseVar))
         return y
 
 
 ########################
 ndim = 2
 
-BETA = 5  ## sqrt(BETA) controls the ratio between ucb and mean
+#BETA = 5  ## sqrt(BETA) controls the ratio between ucb and mean
 
-NORMALIZE_OUTPUT = 'zero_mean_unit_var'
+# NORMALIZE_OUTPUT = 'zero_mean_unit_var'
 # NORMALIZE_OUTPUT = 'zero_one'
-# NORMALIZE_OUTPUT = None
+NORMALIZE_OUTPUT = None
 MEAN, STD = 0, 1
 
 # reload = True
 reload = False
-N_EARLY_STOPPING = 1000
+N_EARLY_STOPPING = None
 
 # ALPHA = MEAN  # prior:
 ALPHA = 0.001 # ndim ** 1
@@ -90,53 +87,46 @@ INITIAL_THETA = 10
 
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
-output_dir = 'output'# _gmrf_min0max1_easy'
-parameter_dir = os.path.join('param_dir', 'csv_files')
-result_filename = os.path.join(output_dir, 'gaussian_result_2dim.csv')
+PARAMETER_DIR = os.path.join('param_dir', 'csv_files')
+#result_filename = os.path.join(OUTPUT_DIR, 'gaussian_result_2dim.csv')
 
-ACQUISITION_FUNC = 'ucb'  # 'ei'
+#ACQUISITION_FUNC = 'ucb'  # 'ei'
 ACQUISITION_PARAM_DIC = {
-    'beta': 5
+    'beta': 5, #for "ucb"
+    'eps': 0.10, #for "en"
+    "par": 0.01, 
+    "tsFactor": 3.0 #for "en" and "ts"
 }
 
-# ACQUISITION_FUNC = 'ei' # 'ei' or 'pi'
-# ACQUISITION_PARAM_DIC = {
-#     'par': 0.
-# }
-########################
+    
+def singleTest(ACQUISITION_FUNC, trialCount):
+    print("%s: trial %d"%(ACQUISITION_FUNC, trialCount))
+    OUTPUT_DIR = os.path.join(os.getcwd(), 'output_%s'%ACQUISITION_FUNC)
+    ### temporary ###
+    if os.path.exists(OUTPUT_DIR):
+        shutil.rmtree(OUTPUT_DIR)
+    ##################
+    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_2dim_%s_iterCount_%d.csv"%(ACQUISITION_FUNC, trialCount))
+    np.random.seed(int(time.time()))
+    
+    print('GAMMA: ', GAMMA)
+    print('GAMMA_Y: ', GAMMA_Y)
+    print('GAMMA0:', GAMMA0)
+    
+    mkdir_if_not_exist(OUTPUT_DIR)
+    param_names = sorted([x.replace('.csv', '') for x in os.listdir(PARAMETER_DIR)])
+    
+    bo_param2model_param_dic = {}
+    bo_param_list = []
+    for param_name in param_names:
+        param_df = pd.read_csv(os.path.join(PARAMETER_DIR, param_name + '.csv'), dtype=str)
+        bo_param_list.append(param_df[param_name].values)
+        param_df.set_index(param_name, inplace=True)
+        bo_param2model_param_dic[param_name] = param_df.to_dict()['bo_' + param_name]
 
-### temporary ###
-import shutil
 
-if os.path.exists(output_dir):
-    shutil.rmtree(output_dir)
-##################
-
-
-print('GAMMA: ', GAMMA)
-print('GAMMA_Y: ', GAMMA_Y)
-print('GAMMA0:', GAMMA0)
-
-mkdir_if_not_exist(output_dir)
-
-param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
-
-bo_param2model_param_dic = {}
-
-bo_param_list = []
-for param_name in param_names:
-    param_df = pd.read_csv(os.path.join(parameter_dir, param_name + '.csv'), dtype=str)
-    bo_param_list.append(param_df[param_name].values)
-
-    param_df.set_index(param_name, inplace=True)
-
-    bo_param2model_param_dic[param_name] = param_df.to_dict()['bo_' + param_name]
-
-print (bo_param_list)
-
-def main():
-    env = GaussianEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, result_filename=result_filename,
-                              output_dir=output_dir,
+    env = GaussianEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, result_filename=RESULT_FILENAME,
+                              output_dir=OUTPUT_DIR,
                               reload=reload)
 
 
@@ -147,26 +137,41 @@ def main():
                     initial_k=INITIAL_K, initial_theta=INITIAL_THETA, acquisition_func=ACQUISITION_FUNC,
                     acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
-    # for i in tqdm(range(n_iter)):
-    for i in range(600):
-        try:
-            flg = agent.learn()
-            agent.plot(output_dir=output_dir)
-            # agent.save_mu_sigma_csv()
-
-            if flg == False:
-                print("Early Stopping!!!")
-                print(agent.bestX)
-                print(agent.bestT)
-                break
-
-        except KeyboardInterrupt:
-            print("Learnig process was forced to stop!")
+    nIter = 1000
+    for i in range(nIter):
+        flg = agent.learn(drop=True if i<nIter-1 else False)
+        #agent.plot(output_dir=OUTPUT_DIR)
+        # agent.save_mu_sigma_csv()
+        if flg == False:
+            print("Early Stopping!!!")
+            print(agent.bestX)
+            print(agent.bestT)
             break
+    os.system("mv %s/*.csv ./eval/"%OUTPUT_DIR)
 
-    #plot_loss(agent.point_info_manager.T_seq, 'reward.png')
-
-
+def testForTrials(acFunc, nIter):
+    trialCount = 0
+    while trialCount < nIter:
+        #np.random.seed(int(time.time()))
+        singleTest(acFunc, trialCount)
+        trialCount += 1
 
 if __name__ == '__main__':
-    main()
+#    for ac in :#["ucb", "pi", "ei", "en", "ts"]:
+#        iterCount = 0
+#        while iterCount < 50:
+#            test(ac, iterCount)
+#            iterCount += 1
+    mkdir_if_not_exist(os.path.join(os.getcwd(), "eval"))
+        
+    acFuncs = ["ucb", "pi", "ei", "en", "ts"]
+    nTrials = [60] * len(acFuncs)
+    jobs = []
+    for acFuncs, nTrial in zip(acFuncs, nTrials):
+        #testForTrials(acFuncs, nTrial)
+        p = Process(target=testForTrials, args=(acFuncs, nTrial))
+        jobs.append(p)
+        p.start()
+    
+    for p in jobs:
+        p.join()
