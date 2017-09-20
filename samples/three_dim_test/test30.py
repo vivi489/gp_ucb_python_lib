@@ -122,6 +122,7 @@ def singleTest(ACQUISITION_FUNC, trialCount):
 
     nIter = 500
     for i in range(nIter):
+        print(acFunc, "iteration =", i)
         flg = agent.learn(drop=True if i<nIter-1 else False)
         #agent.plot(output_dir=OUTPUT_DIR)
         #agent.save_mu_sigma_csv()
@@ -151,8 +152,10 @@ if __name__ == '__main__':
     acFuncs = ["ucb", "pi", "ei", "en", "ts"]
     nTrials = [30] * len(acFuncs)
     jobs = []
-    for acFuncs, nTrial in zip(acFuncs, nTrials):
-        testForTrials(acFuncs, nTrial)
+    for acFunc in acFuncs:
+        testForTrials(acFunc, 1)
+#    for acFuncs, nTrial in zip(acFuncs, nTrials):
+#        testForTrials(acFuncs, nTrial)
 #        p = Process(target=testForTrials, args=(acFuncs, nTrial))
 #        jobs.append(p)
 #        p.start()
