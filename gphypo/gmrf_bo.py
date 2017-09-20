@@ -152,7 +152,8 @@ class GMRF_BO(BaseBO):
 
         self.update()
         self.total_clicked_ratio_list = []
-
+        
+        
     def do_all_point_burnin(self):
         n_sample_per_point = int(self.n_ctr / self.n_points)
         for i in range(self.n_points):
@@ -244,18 +245,18 @@ class GMRF_BO(BaseBO):
 
     def update(self, n_start_opt_hyper_param=0):
         A, B, mu_tilda, gamma_tilda = self.calc_tau()
-
+        
         # start = time.time()
         # cov = scipy.sparse.linalg.inv(A) # This is slow
-
+        
         factor = cholesky(A)
         cov = scipy.sparse.csc_matrix(factor(np.eye(A.shape[0])))
         # end = time.time() - start
         # print("one calc: %s sec" % end)
-
+        
         self.mu = mat_flatten(cov.dot(B).dot(mu_tilda))
         self.sigma = mat_flatten(np.sqrt(cov[np.diag_indices_from(cov)]))
-
+        
         # Update hyperparamters
         if self.update_hyperparam is not None and self.point_info_manager.update_cnt > n_start_opt_hyper_param:
             self.update_hyperparam()

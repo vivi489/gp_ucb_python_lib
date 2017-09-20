@@ -40,7 +40,7 @@ class BaseBO(object):
         '''
 
         self.bo_param_list = bo_param_list
-        self.meshgrid = np.array(np.meshgrid(*bo_param_list))
+        self.meshgrid = np.array(np.meshgrid(*bo_param_list)) #this line is crucial
         self.environment = environment
         self.optimizer = optimizer
         self.does_pairwise_sampling = does_pairwise_sampling
@@ -51,7 +51,7 @@ class BaseBO(object):
         self.ndim_list = [len(bo_param) for bo_param in bo_param_list]
         self.ndim = len(self.meshgrid)
 
-        self.X_grid = self.meshgrid.reshape(self.meshgrid.shape[0], -1).T
+        self.X_grid = self.meshgrid.reshape(self.meshgrid.shape[0], -1).T #this line is crucial
         self.X_grid2idx_dic = {tuple(x): i for i, x in enumerate(self.X_grid)}
         self.n_points = self.X_grid.shape[0]
 
@@ -77,7 +77,7 @@ class BaseBO(object):
         self.sigma = abs(np.random.randn(self.n_points))
         self.n_ctr = n_ctr
         self.randomly_total_clicked_ratio_list = []
-
+        
         # Reload past results if exits
         if environment.reload:
             self.reload_data_from_environment_csv()

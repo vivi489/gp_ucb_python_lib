@@ -6,8 +6,8 @@ import pandas as pd
 from gphypo.util import mkdir_if_not_exist
 
 bo_param_dic = {
-    'x': np.arange(-5, 5, 0.5),
-    'y': np.arange(-5, 5, 0.5)
+    'x': np.arange(-5, 5.5, 0.5),
+    'y': np.arange(-5, 5.5, 0.5)
 }
 
 bo_param2gaussian_param = {

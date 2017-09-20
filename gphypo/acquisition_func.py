@@ -1,4 +1,4 @@
-import abc, time
+import abc
 
 import numpy as np
 from scipy.stats import norm
@@ -74,7 +74,7 @@ class Thompson(BaseAcquisitionFunction):
     def compute(self, mu, sigma, observation_list, **args):
         #beta = self.get_beta()
         self.learn_cnt += 1
-        return np.random.normal(mu, sigma * self.tsFactor)
+        return np.random.normal(mu, sigma)
 
 
 class EnsembledAC(BaseAcquisitionFunction):

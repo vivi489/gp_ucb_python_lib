@@ -75,7 +75,7 @@ ACQUISITION_PARAM_DIC = {
     'beta': 5, #for "ucb"
     'eps': 0.10, #for "en"
     "par": 0.01, 
-    "tsFactor": 3.0 #for "en" and "ts"
+    "tsFactor": 2.0 #for "en" and "ts"
 }
 
 
@@ -133,25 +133,25 @@ def singleTest(ACQUISITION_FUNC, trialCount):
                                     output_dir=OUTPUT_DIR,
                                     reload=RELOAD)
     
-#    agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
-#                     is_edge_normalized=IS_EDGE_NORMALIZED, 
-#                     gt_available=True, 
-#                     n_early_stopping=N_EARLY_STOPPING,
-#                     burnin=BURNIN,
-#                     normalize_output=NORMALIZE_OUTPUT, 
-#                     update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
-#                     initial_k=INITIAL_K, 
-#                     initial_theta=INITIAL_THETA, 
-#                     acquisition_func=ACQUISITION_FUNC,
-#                     acquisition_param_dic=ACQUISITION_PARAM_DIC)
+    agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
+                     is_edge_normalized=IS_EDGE_NORMALIZED, 
+                     gt_available=True, 
+                     n_early_stopping=N_EARLY_STOPPING,
+                     burnin=BURNIN,
+                     normalize_output=NORMALIZE_OUTPUT, 
+                     update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
+                     initial_k=INITIAL_K, 
+                     initial_theta=INITIAL_THETA, 
+                     acquisition_func=ACQUISITION_FUNC,
+                     acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
-    agent = GP_BO(bo_param_list, env,
-                   gt_available=True, 
-                   my_kernel=kernel, 
-                   burnin=BURNIN,
-                   normalize_output=NORMALIZE_OUTPUT, 
-                   acquisition_func=ACQUISITION_FUNC,
-                   acquisition_param_dic=ACQUISITION_PARAM_DIC)
+#    agent = GP_BO(bo_param_list, env,
+#                   gt_available=True, 
+#                   my_kernel=kernel, 
+#                   burnin=BURNIN,
+#                   normalize_output=NORMALIZE_OUTPUT, 
+#                   acquisition_func=ACQUISITION_FUNC,
+#                   acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
     nIter = 1000
     for i in range(nIter):
