@@ -248,8 +248,9 @@ class GMRF_BO(BaseBO):
         
         # start = time.time()
         # cov = scipy.sparse.linalg.inv(A) # This is slow
-        
+        #print("cholesky started")
         factor = cholesky(A)
+        #print("cholesky finished")
         cov = scipy.sparse.csc_matrix(factor(np.eye(A.shape[0])))
         # end = time.time() - start
         # print("one calc: %s sec" % end)

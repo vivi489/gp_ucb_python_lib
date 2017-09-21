@@ -1,12 +1,14 @@
 # coding: utf-8
-import os, shutil
+import os, shutil, sys
 
 import numpy as np
 import pandas as pd
 from scipy.stats import multivariate_normal
+from multiprocessing import Process, Pool
+from sksparse.cholmod import cholesky
+
 
 from gphypo.gmrf_bo import GMRF_BO
-from gphypo.gp_bo import GP_BO
 from gphypo.env import BasicEnvironment
 from gphypo.util import mkdir_if_not_exist
 
@@ -20,16 +22,15 @@ class FourDimGaussianEnvironment(BasicEnvironment):
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         x = np.array(x)
 
-        mean1 = [2, 2, 2, 2]
+        mean1 = [3, 3, 2, 2]
         cov1 = np.eye(4) * 0.7
-
-        mean2 = [-2, -2, -2, -2]
-        cov2 = np.eye(4) * 0.5
+        mean2 = [-3, -2, -3, -2]
+        cov2 = np.eye(4) * 0.3
 
         assert x.ndim in [1, 2]
 
         y = multivariate_normal.pdf(x, mean=mean1, cov=cov1) + multivariate_normal.pdf(x, mean=mean2, cov=cov2)
-        return y*10
+        return y
 
 
 ########################
@@ -65,7 +66,7 @@ ACQUISITION_PARAM_DIC = {
     'beta': 5, 
     'eps': 0.3,
     "par": 0.01,
-    "tsFactor": 3.0
+    "tsFactor": 2.0
 }
 
 # kernel = Matern(2.5)
@@ -81,7 +82,7 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     if os.path.exists(OUTPUT_DIR):
         shutil.rmtree(OUTPUT_DIR)
     ##################
-    RESULT_FILENAME = os.path.join(OUTPUT_DIR, 'gaussian_result_4dim.csv')
+    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_4dim_%s_iterCount_%d.csv"%(ACQUISITION_FUNC, trialCount))
     
     print('GAMMA: ', GAMMA)
     print('GAMMA_Y: ', GAMMA_Y)
@@ -117,16 +118,45 @@ def singleTest(ACQUISITION_FUNC, trialCount):
                      update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
                      initial_k=INITIAL_K, 
                      initial_theta=INITIAL_THETA, 
-                     acquisition_func="ucb",
+                     acquisition_func=ACQUISITION_FUNC,
                      acquisition_param_dic=ACQUISITION_PARAM_DIC)
     
-    n_iter = 500
-    for i in range(n_iter):
-        flg = agent.learn()
-        if flg == False:
+    nIter = 500
+    for i in range(nIter):
+        flg = agent.learn(drop=True if i<nIter-1 else False)
+        if not flg:
             print("Early Stopping!!!")
             print(agent.bestX)
             print(agent.bestT)
             break
+    os.system("mv %s/*.csv ./eval/"%OUTPUT_DIR)
 
-singleTest("ucb", 0)
+def testForTrials(acFunc, nIter):
+    trialCount = 0
+    while trialCount < nIter:
+        #np.random.seed(int(time.time()))
+        singleTest(acFunc, trialCount)
+        trialCount += 1   
+        
+    
+        
+if __name__ == '__main__':
+#    for ac in :#["ucb", "pi", "ei", "en", "ts"]:
+#        iterCount = 0
+#        while iterCount < 50:
+#            test(ac, iterCount)
+#            iterCount += 1
+    mkdir_if_not_exist(os.path.join(os.getcwd(), "eval"))
+    acFuncs = sys.argv[1]
+    nTrials = 30
+#    jobs = []
+#    for acFuncs, nTrial in zip(acFuncs, nTrials):
+#        #testForTrials(acFuncs, nTrial)
+#        p = Process(target=testForTrials, args=(acFuncs, nTrial,))
+#        jobs.append(p)
+#        p.start()
+#    
+#    for p in jobs:
+#        p.join()
+    testForTrials(acFuncs, nTrials)
+

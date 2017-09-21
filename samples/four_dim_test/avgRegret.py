@@ -11,7 +11,7 @@ from scipy.stats import multivariate_normal
 def get_all_fx(acFunc, nTrials, eval_csv_dir):
     list_fx = []
     for i in range(nTrials):
-        eval_csv_path = os.path.join(eval_csv_dir, "gaussian_result_3dim_%s_iterCount_%d.csv"%(acFunc, i))
+        eval_csv_path = os.path.join(eval_csv_dir, "gaussian_result_4dim_%s_iterCount_%d.csv"%(acFunc, i))
         list_fx.append(np.array(pd.read_csv(eval_csv_path, index_col=None)["output"]))
     return np.array(list_fx) #fx_matrix
 
@@ -28,33 +28,22 @@ def computeRunningAvgRegret(fx_matrix, gTruthValues):
     return runningAvg
     
 
-def run_grid(X, Y, Z):
-    mean1 = [3, 3, 3]
-    cov1 = np.eye(3) * 1
-    
-    mean2 = [-4, -4, -4]
-    cov2 = np.eye(3) * 0.2
-    
-    # mean3 = [-2, 5, 0]
-    # cov3 = np.eye(3) * 1
-    
-    XRange = np.array(np.meshgrid(X, Y, Z))
+def run_grid(W, X, Y, Z):
+    mean1 = [3, 3, 2, 2]
+    cov1 = np.eye(4) * 0.7
+    mean2 = [-3, -2, -3, -2]
+    cov2 = np.eye(4) * 0.3
+
+    XRange = np.array(np.meshgrid(W, X, Y, Z))
     XRange = XRange.reshape(XRange.shape[0], -1).T
     
     y = multivariate_normal.pdf(XRange, mean=mean1, cov=cov1) + multivariate_normal.pdf(XRange, mean=mean2, cov=cov2)
     return y
 
-    
 
-ACQUISITION_PARAM_DIC = {
-    'beta': 5, #for "ucb"
-    'eps': 0.10, #for "en"
-    "par": 0.01, 
-    "tsFactor": 2.0 #for "en" and "ts"
-}
-  
+
 acFuncs = ["ucb", "pi", "ei", "en", "ts"]
-nTrials = 10
+nTrials = 1
 eval_csv_dir = "./eval"
 
 font = {'weight' : 'bold',
@@ -65,7 +54,7 @@ matplotlib.rc('font', **font)
 if __name__ == '__main__':
     runningAvgRegret = {}
     colors = {"ucb":"black", "pi":"orange", "ei":"blue", "en":"red", "ts":"green"}
-    gTruthValues = run_grid(np.arange(-5, 5.5, 0.5), np.arange(-5, 5.5, 0.5), np.arange(-5, 5.5, 0.5))
+    gTruthValues = run_grid(*(np.arange(-3, 4, 1) for _ in range(4)))
     
     for acFunc in acFuncs:
         runningAvgRegret[acFunc] = computeRunningAvgRegret(get_all_fx(acFunc, nTrials, eval_csv_dir), gTruthValues)
@@ -78,3 +67,5 @@ if __name__ == '__main__':
     plt.legend(handles, acFuncs)
     plt.savefig("eval.eps", format='eps')
     plt.close()
+
+
