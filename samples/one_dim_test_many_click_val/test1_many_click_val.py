@@ -15,16 +15,6 @@ from gphypo.util import mkdir_if_not_exist, plot_1dim
 # from sklearn.gaussian_process.kernels import ConstantKernel as C, Matern
 # from tqdm import tqdm
 
-def sigmoid(x):
-    sigmoid_range = 34.538776394910684
-
-    # if x <= -sigmoid_range:
-    #     return 1e-15
-    # if x >= sigmoid_range:
-    #     return 1.0 - 1e-15
-
-    return np.nan_to_num(1.0 / (1.0 + np.exp(-x)))
-
 
 def flip(p):
     return (random.random() < p)
@@ -35,8 +25,8 @@ class ClickOneDimGaussianEnvironment(BasicEnvironment):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
-        prob = norm.pdf(x, loc=-3, scale=0.8) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
-
+        prob = norm.pdf(x, loc=-3, scale=0.2) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
+        prob /= 3.0;
         if calc_gt:
             return logit(prob)
 
@@ -135,7 +125,6 @@ agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y,
                 initial_k=INITIAL_K, initial_theta=INITIAL_THETA, acquisition_func=ACQUISITION_FUNC,
                 acquisition_param_dic=ACQUISITION_PARAM_DIC, n_ctr=n_total_exp)
 
-# for i in tqdm(range(n_iter)):
 
 agent.save_mu_sigma_csv(outfn=mu_sigma_fn, point_info_fn=point_fn)
 agent.plot_click_distribution(output_dir)
@@ -145,7 +134,7 @@ for i in range(n_iter):
     try:
         flg = agent.learn_from_clicks()
         # agent.sample_randomly()
-        agent.plot_click_distribution(output_dir)
+        # agent.plot_click_distribution(output_dir)
 
         if flg == False:
             print("Early Stopping!!!")

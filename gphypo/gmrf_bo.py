@@ -235,17 +235,14 @@ class GMRF_BO(BaseBO):
         self.update()
 
         self.save_mu_sigma_csv(mu_sigma_csv_fn)
-
         n_total_clicked = self.environment.result_df.output.values[-self.n_points:].astype(np.float64).sum()
         total_clicked_ratio = n_total_clicked / self.n_ctr
         self.total_clicked_ratio_list.append(total_clicked_ratio)
         #print('ratio: %s' % total_clicked_ratio)
-
         return True
 
     def update(self, n_start_opt_hyper_param=0):
         A, B, mu_tilda, gamma_tilda = self.calc_tau()
-        
         # start = time.time()
         # cov = scipy.sparse.linalg.inv(A) # This is slow
         #print("cholesky started")

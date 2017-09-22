@@ -159,7 +159,7 @@ class BaseBO(object):
         ratio_df = ratio_df.join(self.point_info_df)
         ratio_df['n_exp'] = ratio_df['ratio'] * self.n_ctr
         ratio_df = ratio_df.sort_index()
-
+        #ratio_df format: point_id(index name)   ratio   bo_x    n_exp
         for key, row in ratio_df.iterrows():
             x = row[self.environment.bo_param_names].as_matrix()
             continue_flg = self.sample(x, round(row.n_exp))
@@ -180,10 +180,10 @@ class BaseBO(object):
         total_clicked_ratio = n_total_clicked / self.n_ctr
         self.randomly_total_clicked_ratio_list.append(total_clicked_ratio)
 
-    # Generate the obserbation value
+    # Generate the observation value
     def sample(self, x, n_exp=None): # performs environment sampling on x #extremely IMPORTANT
         if n_exp is not None and n_exp > 1:
-            n1 = self.environment.sample(x, n_exp=n_exp)  # Returns the number of click
+            n1 = self.environment.sample(x, n_exp=n_exp)  # Returns the number of clicks
             n0 = n_exp - n1  # Calculates the number of unclick
             t = transform_click_val2real_val(n0, n1)
             if type(t) == list or type(t) == np.ndarray:
@@ -204,7 +204,6 @@ class BaseBO(object):
 
         if self.cnt_since_bestT > self.n_early_stopping:
             return False
-
         return True
 
     def save_mu_sigma_csv(self, outfn="mu_sigma.csv", point_info_fn='point_info.csv'):
@@ -214,7 +213,6 @@ class BaseBO(object):
         })
         df.index.name = 'point_id'
         df.to_csv(outfn)
-
         point_info_df = pd.DataFrame(self.X_grid, columns=self.environment.bo_param_names)
         point_info_df.index.name = 'point_id'
         point_info_df.to_csv(point_info_fn)
