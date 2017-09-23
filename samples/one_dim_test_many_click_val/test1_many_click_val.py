@@ -25,14 +25,14 @@ class ClickOneDimGaussianEnvironment(BasicEnvironment):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
-        prob = norm.pdf(x, loc=-3, scale=0.2) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
-        prob /= 3.0;
+        #print("run_model: n_exp=", n_exp)
+        prob = norm.pdf(x, loc=-2, scale=0.2) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
+        prob /= 3.0
         if calc_gt:
+            #print("truth: ", logit(prob))
             return logit(prob)
-
         if n_exp > 1:
             return np.random.binomial(n=n_exp, p=prob)
-
         clicked = int(flip(prob))
         return clicked
 
@@ -62,7 +62,7 @@ GAMMA_Y = 0.01 / ((STD * ndim) ** 2)  # weight of adjacent
 GAMMA0 = 0.01 * GAMMA
 IS_EDGE_NORMALIZED = True
 
-BURNIN = True
+BURNIN = False
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'
 
 INITIAL_K = 1
@@ -127,7 +127,7 @@ agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y,
 
 
 agent.save_mu_sigma_csv(outfn=mu_sigma_fn, point_info_fn=point_fn)
-agent.plot_click_distribution(output_dir)
+#agent.plot_click_distribution(output_dir)
 # agent.learn_from_clicks()
 
 for i in range(n_iter):
@@ -135,7 +135,7 @@ for i in range(n_iter):
         flg = agent.learn_from_clicks()
         # agent.sample_randomly()
         # agent.plot_click_distribution(output_dir)
-
+        
         if flg == False:
             print("Early Stopping!!!")
             print(agent.bestX)

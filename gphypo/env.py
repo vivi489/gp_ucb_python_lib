@@ -91,7 +91,7 @@ class BasicEnvironment(object):
         result = self.run_model(n_model, processed_x, n_exp=n_exp)
         if type(result) == list or type(result) == np.ndarray:
             result = result[0]
-
+        #print("env sample: processed_x, n_exp, result, get_ground_truth =", processed_x, n_exp, result, get_ground_truth)
         # result_df is preread from files during initialization
         self.result_df.loc[len(self.result_df)] = list(map(str, list(x) + list(processed_x) + [n_exp, result]))
         # update and overwrite the file

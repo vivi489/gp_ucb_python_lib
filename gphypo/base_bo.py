@@ -155,13 +155,16 @@ class BaseBO(object):
 
     def sample_using_ratio_csv(self, ratio_csv_fn):
         ratio_df = pd.read_csv(ratio_csv_fn, index_col=0, names=['ratio'])
+        #print("raw ratio_df:\n", ratio_df)
         ratio_df.index.name = 'point_id'
         ratio_df = ratio_df.join(self.point_info_df)
         ratio_df['n_exp'] = ratio_df['ratio'] * self.n_ctr
         ratio_df = ratio_df.sort_index()
         #ratio_df format: point_id(index name)   ratio   bo_x    n_exp
+        #print(ratio_df)
         for key, row in ratio_df.iterrows():
             x = row[self.environment.bo_param_names].as_matrix()
+            #print("sample_using_ratio_csv key=", key, "row.n_exp=", row.n_exp)
             continue_flg = self.sample(x, round(row.n_exp))
 
     # This method is just for comparison
@@ -176,12 +179,12 @@ class BaseBO(object):
 
         # print(clicked_list)
         n_total_clicked = float(sum(clicked_list))
-
         total_clicked_ratio = n_total_clicked / self.n_ctr
         self.randomly_total_clicked_ratio_list.append(total_clicked_ratio)
 
     # Generate the observation value
     def sample(self, x, n_exp=None): # performs environment sampling on x #extremely IMPORTANT
+        #print("base sample:n_exp=", n_exp)
         if n_exp is not None and n_exp > 1:
             n1 = self.environment.sample(x, n_exp=n_exp)  # Returns the number of clicks
             n0 = n_exp - n1  # Calculates the number of unclick
@@ -189,7 +192,8 @@ class BaseBO(object):
             if type(t) == list or type(t) == np.ndarray:
                 t = t[0]
             self.point_info_manager.update(x, {t: n_exp})
-        else:
+        else: #when n_exp==0, self.environment.sample(n_exp=1) by default, written to self.environment.result_df
+            #print("base sample: n_exp<=1", n_exp)
             t = self.environment.sample(x)
             if type(t) == list or type(t) == np.ndarray:
                 t = t[0]
