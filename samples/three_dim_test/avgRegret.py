@@ -11,7 +11,7 @@ from scipy.stats import multivariate_normal
 def get_all_fx(acFunc, nTrials, eval_csv_dir):
     list_fx = []
     for i in range(nTrials):
-        eval_csv_path = os.path.join(eval_csv_dir, "gaussian_result_3dim_%s_iterCount_%d.csv"%(acFunc, i))
+        eval_csv_path = os.path.join(eval_csv_dir, "gaussian_result_3dim_%s_trialCount_%d.csv"%(acFunc, i))
         list_fx.append(np.array(pd.read_csv(eval_csv_path, index_col=None)["output"]))
     return np.array(list_fx) #fx_matrix
 
@@ -44,17 +44,9 @@ def run_grid(X, Y, Z):
     y = multivariate_normal.pdf(XRange, mean=mean1, cov=cov1) + multivariate_normal.pdf(XRange, mean=mean2, cov=cov2)
     return y
 
-    
-
-ACQUISITION_PARAM_DIC = {
-    'beta': 5, #for "ucb"
-    'eps': 0.10, #for "en"
-    "par": 0.01, 
-    "tsFactor": 2.0 #for "en" and "ts"
-}
   
-acFuncs = ["ucb", "pi", "ei", "en", "ts"]
-nTrials = 10
+acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
+nTrials = 30
 eval_csv_dir = "./eval"
 
 font = {'weight' : 'bold',
@@ -64,8 +56,8 @@ matplotlib.rc('font', **font)
 
 if __name__ == '__main__':
     runningAvgRegret = {}
-    colors = {"ucb":"black", "pi":"orange", "ei":"blue", "en":"red", "ts":"green"}
-    gTruthValues = run_grid(np.arange(-5, 5.5, 0.5), np.arange(-5, 5.5, 0.5), np.arange(-5, 5.5, 0.5))
+    colors = {"ucb":"black", "pi":"orange", "ei":"blue", "ts":"red", "greedy":"green"}
+    gTruthValues = run_grid(*(np.arange(-5, 5.5, 1) for _ in range(3)))
     
     for acFunc in acFuncs:
         runningAvgRegret[acFunc] = computeRunningAvgRegret(get_all_fx(acFunc, nTrials, eval_csv_dir), gTruthValues)

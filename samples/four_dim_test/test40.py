@@ -64,9 +64,9 @@ UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
 ACQUISITION_PARAM_DIC = {
     'beta': 5, 
-    'eps': 0.3,
+    'eps': 0.2,
     "par": 0.01,
-    "tsFactor": 2.0
+    "tsFactor": 1.0
 }
 
 # kernel = Matern(2.5)
@@ -82,7 +82,7 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     if os.path.exists(OUTPUT_DIR):
         shutil.rmtree(OUTPUT_DIR)
     ##################
-    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_4dim_%s_iterCount_%d.csv"%(ACQUISITION_FUNC, trialCount))
+    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_4dim_%s_trialCount_%d.csv"%(ACQUISITION_FUNC, trialCount))
     
     print('GAMMA: ', GAMMA)
     print('GAMMA_Y: ', GAMMA_Y)
@@ -141,7 +141,7 @@ def testForTrials(acFunc, nIter):
     
         
 if __name__ == '__main__':
-#    for ac in :#["ucb", "pi", "ei", "en", "ts"]:
+#    for ac in :#["ucb", "pi", "ei", "greedy", "ts"]:
 #        iterCount = 0
 #        while iterCount < 50:
 #            test(ac, iterCount)

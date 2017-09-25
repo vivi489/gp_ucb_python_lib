@@ -8,6 +8,6 @@ if __name__ == '__main__':
     acFuncs = ["ei", "pi", "ucb", "greedy", "ts"]
     jobs = []
     for acFunc in acFuncs:
-        p = subprocess.Popen(["python", "./test40.py", acFunc], stderr=None)
+        p = subprocess.Popen(["python", "./test30.py", acFunc], stderr=None)
         jobs.append(p)
     for p in jobs: p.wait()

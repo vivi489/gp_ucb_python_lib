@@ -11,7 +11,7 @@ from scipy.stats import multivariate_normal
 def get_all_fx(acFunc, nTrials, eval_csv_dir):
     list_fx = []
     for i in range(nTrials):
-        eval_csv_path = os.path.join(eval_csv_dir, "gaussian_result_4dim_%s_iterCount_%d.csv"%(acFunc, i))
+        eval_csv_path = os.path.join(eval_csv_dir, "gaussian_result_4dim_%s_trialCount_%d.csv"%(acFunc, i))
         list_fx.append(np.array(pd.read_csv(eval_csv_path, index_col=None)["output"]))
     return np.array(list_fx) #fx_matrix
 

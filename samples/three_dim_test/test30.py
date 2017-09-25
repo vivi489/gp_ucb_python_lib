@@ -1,5 +1,5 @@
 # coding: utf-8
-import os, time, shutil
+import os, time, shutil, sys
 
 import numpy as np
 import pandas as pd
@@ -77,9 +77,9 @@ PARAMETER_DIR = os.path.join('param_dir', 'csv_files')
 
 ACQUISITION_PARAM_DIC = {
     'beta': 5, #for "ucb"
-    'eps': 0.10, #for "en"
+    'eps': 0.20, #for "greedy"
     "par": 0.01, 
-    "tsFactor": 2.0 #for "en" and "ts"
+    "tsFactor": 1.0 #for "greedy" and "ts"
 }
 
 
@@ -91,7 +91,7 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     if os.path.exists(OUTPUT_DIR):
         shutil.rmtree(OUTPUT_DIR)
     ##################
-    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_3dim_%s_iterCount_%d.csv"%(ACQUISITION_FUNC, trialCount))
+    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_3dim_%s_trialCount_%d.csv"%(ACQUISITION_FUNC, trialCount))
     print('GAMMA: ', GAMMA)
     print('GAMMA_Y: ', GAMMA_Y)
     print('GAMMA0:', GAMMA0)
@@ -148,11 +148,10 @@ if __name__ == '__main__':
 #            test(ac, iterCount)
 #            iterCount += 1
     mkdir_if_not_exist(os.path.join(os.getcwd(), "eval"))
-    acFuncs = ["ts"]#["ucb", "pi", "ei", "en", "ts"]
-    nTrials = [30] * len(acFuncs)
-    jobs = []
-    for acFuncs, nTrial in zip(acFuncs, nTrials):
-        testForTrials(acFuncs, nTrial)
+    acFuncs = sys.argv[1]
+    nTrials = 30
+
+    testForTrials(acFuncs, nTrials)
 #        p = Process(target=testForTrials, args=(acFuncs, nTrial))
 #        jobs.append(p)
 #        p.start()
