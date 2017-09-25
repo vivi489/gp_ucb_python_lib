@@ -73,9 +73,9 @@ UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 #ACQUISITION_FUNC = 'en'  # 'ei'
 ACQUISITION_PARAM_DIC = {
     'beta': 5, #for "ucb"
-    'eps': 0.10, #for "en"
+    'eps': 0.20, #for "greedy"
     "par": 0.01, 
-    "tsFactor": 2.0 #for "en" and "ts"
+    "tsFactor": 1.0 #for "greedy" and "ts"
 }
 
 
@@ -97,7 +97,7 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     if os.path.exists(OUTPUT_DIR):
         shutil.rmtree(OUTPUT_DIR)
     ##################
-    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_1dim_%s_iterCount_%d.csv"%(ACQUISITION_FUNC, trialCount))
+    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_1dim_%s_trialCount_%d.csv"%(ACQUISITION_FUNC, trialCount))
     np.random.seed(int(time.time()))
     print('GAMMA: ', GAMMA)
     print('GAMMA_Y: ', GAMMA_Y)
@@ -185,7 +185,7 @@ if __name__ == '__main__':
 #            iterCount += 1
     mkdir_if_not_exist(os.path.join(os.getcwd(), "eval"))
         
-    acFuncs = ["ucb", "pi", "ei", "en", "ts"]
+    acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
     nTrials = [30] * len(acFuncs)
     jobs = []
     for acFuncs, nTrial in zip(acFuncs, nTrials):

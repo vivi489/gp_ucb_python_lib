@@ -10,7 +10,7 @@ from scipy.stats import norm
 def get_all_fx(acFunc, nTrials, eval_csv_dir):
     list_fx = []
     for i in range(nTrials):
-        eval_csv_path = os.path.join(eval_csv_dir, "gaussian_result_1dim_%s_iterCount_%d.csv"%(acFunc, i))
+        eval_csv_path = os.path.join(eval_csv_dir, "gaussian_result_1dim_%s_trialCount_%d.csv"%(acFunc, i))
         list_fx.append(np.array(pd.read_csv(eval_csv_path, index_col=None)["output"]))
     return np.array(list_fx) #fx_matrix
 
@@ -27,8 +27,8 @@ def computeRunningAvgRegret(fx_matrix, gTruthFunc, XRange):
     return runningAvg
     
     
-acFuncs = ["ucb", "pi", "ei", "en", "ts"]
-nTrials = 30
+acFuncs = ["ucb", "pi", "ei", "ts", "greedy"]
+nTrials = 2
 eval_csv_path = "./eval"
 
 font = {'weight' : 'bold',
@@ -38,7 +38,7 @@ matplotlib.rc('font', **font)
 
 if __name__ == '__main__':
     runningAvgRegret = {}
-    colors = {"ucb":"black", "pi":"yellow", "ei":"blue", "en":"red", "ts":"green"}
+    colors = {"ucb":"black", "pi":"orange", "ei":"blue", "ts":"red", "greedy":"green"}
     
     gTruthFunc = lambda x: norm.pdf(x, loc=-3, scale=0.15) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
     XRange = np.linspace(-5.0, 5.0, 1000)

@@ -77,7 +77,7 @@ class Thompson(BaseAcquisitionFunction):
         return np.random.normal(mu, sigma)
 
 
-class EnsembledAC(BaseAcquisitionFunction):
+class GreedyEps(BaseAcquisitionFunction):
     def __init__(self, param_dic, type="normal", d_size=None):
         super().__init__(param_dic)
         self.learn_cnt = 1
@@ -100,7 +100,7 @@ class EnsembledAC(BaseAcquisitionFunction):
         #mask = np.zeros(mu.shape).astype(np.float64)
         #mask[int(np.random.rand()*len(mask))] = 1.0
         drop = kwargs["drop"]
-        return np.random.normal(mu, sigma * self.tsFactor) if (np.random.rand()<self.eps and drop) else (mu + sigma * np.sqrt(self.get_beta()))
+        return np.random.normal(mu, sigma * self.tsFactor) if (np.random.rand()<=self.eps and drop) else (mu + sigma * np.sqrt(self.get_beta()))
 
 
 

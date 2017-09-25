@@ -12,7 +12,7 @@ from gphypo.env import BasicEnvironment
 def get_all_fx(acFunc, nTrials, eval_csv_dir):
     list_fx = []
     for i in range(nTrials):
-        eval_csv_path = os.path.join(eval_csv_dir, "gaussian_result_2dim_%s_iterCount_%d.csv"%(acFunc, i))
+        eval_csv_path = os.path.join(eval_csv_dir, "gaussian_result_2dim_%s_trialCount_%d.csv"%(acFunc, i))
         list_fx.append(np.array(pd.read_csv(eval_csv_path, index_col=None)["output"]))
     return np.array(list_fx) #fx_matrix
 
@@ -51,7 +51,7 @@ ACQUISITION_PARAM_DIC = {
     "tsFactor": 2.0 #for "en" and "ts"
 }
   
-acFuncs = ["ucb", "pi", "ei", "en", "ts"]
+acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
 nTrials = 30
 eval_csv_dir = "./eval"
 
@@ -62,7 +62,7 @@ matplotlib.rc('font', **font)
 
 if __name__ == '__main__':
     runningAvgRegret = {}
-    colors = {"ucb":"black", "pi":"yellow", "ei":"blue", "en":"red", "ts":"green"}
+    colors = {"ucb":"black", "pi":"orange", "ei":"blue", "ts":"red", "greedy":"green"}
 
     gTruthValues = run_grid(*np.meshgrid(np.arange(-5, 5, 0.5), np.arange(-5, 5, 0.5)))
     for acFunc in acFuncs:
@@ -76,5 +76,4 @@ if __name__ == '__main__':
     plt.legend(handles, acFuncs)
     plt.savefig("eval.eps", format='eps')
     plt.close()
-
 

@@ -55,7 +55,7 @@ class BaseBO(object):
         self.X_grid2idx_dic = {tuple(x): i for i, x in enumerate(self.X_grid)}
         self.n_points = self.X_grid.shape[0]
 
-        assert acquisition_func in ["ucb", "ei", "pi", "ts", "en"]
+        assert acquisition_func in ["ucb", "ei", "pi", "ts", "greedy"]
         self.acquisition_func_name = acquisition_func
         if acquisition_func == 'ucb':
             self.acquisition_func = UCB(acquisition_param_dic, d_size=self.X_grid.shape[0])
@@ -66,7 +66,7 @@ class BaseBO(object):
         elif acquisition_func == 'ts':
             self.acquisition_func = Thompson(acquisition_param_dic)
         else:
-            self.acquisition_func = EnsembledAC(acquisition_param_dic, type="theorem1", d_size=self.X_grid.shape[0])
+            self.acquisition_func = GreedyEps(acquisition_param_dic, type="theorem1", d_size=self.X_grid.shape[0])
 
         self.gt_available = gt_available
         self._set_z()

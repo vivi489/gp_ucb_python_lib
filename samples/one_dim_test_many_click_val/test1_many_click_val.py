@@ -26,7 +26,7 @@ class ClickOneDimGaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         #print("run_model: n_exp=", n_exp)
-        prob = norm.pdf(x, loc=-2, scale=0.2) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
+        prob = norm.pdf(x, loc=-2, scale=0.3) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
         prob /= 3.0
         if calc_gt:
             #print("truth: ", logit(prob))
@@ -49,14 +49,12 @@ MEAN, STD = 0, 1
 
 reload = False
 # reload = True
-n_iter = 200
 N_EARLY_STOPPING = 100
 
 ALPHA = 1  # prior:
 
 GAMMA_Y_ = 10 / ((STD * ndim) ** 2)  # weight of adjacent
 GAMMA = (2 * ndim) * GAMMA_Y_
-
 GAMMA_Y = 0.01 / ((STD * ndim) ** 2)  # weight of adjacent
 
 GAMMA0 = 0.01 * GAMMA
@@ -130,11 +128,12 @@ agent.save_mu_sigma_csv(outfn=mu_sigma_fn, point_info_fn=point_fn)
 #agent.plot_click_distribution(output_dir)
 # agent.learn_from_clicks()
 
-for i in range(n_iter):
+nIter = 100
+for i in range(nIter):
     try:
         flg = agent.learn_from_clicks()
         # agent.sample_randomly()
-        # agent.plot_click_distribution(output_dir)
+        #agent.plot_click_distribution(output_dir)
         
         if flg == False:
             print("Early Stopping!!!")
