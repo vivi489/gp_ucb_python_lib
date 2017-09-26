@@ -23,8 +23,8 @@ class GaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
 
-        mean1 = [3, 3]
-        cov1 = [[2, 0], [0, 2]]
+        mean1 = [2, 2]
+        cov1 = [[0.25, 0], [0, 0.25]]
         # mean1 = [0, 0]
         # cov1 = [[0.5, 0], [0, 0.5]]
 
@@ -40,7 +40,7 @@ class GaussianEnvironment(BasicEnvironment):
         # cov3 = [[0.6, 0], [0, 0.6]]
 
         mean3 = [3, -3]
-        cov3 = [[0.3, 0], [0, 0.3]]
+        cov3 = [[0.02, 0], [0, 0.02]]
 
         #mean4 = [0, 0]
         #cov4 = [[0.1, 0], [0, 0.1]]
@@ -58,9 +58,9 @@ ndim = 2
 
 #BETA = 5  ## sqrt(BETA) controls the ratio between ucb and mean
 
-NORMALIZE_OUTPUT = 'zero_mean_unit_var'
+# NORMALIZE_OUTPUT = 'zero_mean_unit_var'
 # NORMALIZE_OUTPUT = 'zero_one'
-#NORMALIZE_OUTPUT = None
+NORMALIZE_OUTPUT = None
 MEAN, STD = 0, 1
 
 # reload = True

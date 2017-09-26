@@ -132,7 +132,7 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     os.system("mv %s/*.csv ./eval/"%OUTPUT_DIR)
 
 def testForTrials(acFunc, nIter):
-    trialCount = 0
+    trialCount = 21
     while trialCount < nIter:
         #np.random.seed(int(time.time()))
         singleTest(acFunc, trialCount)

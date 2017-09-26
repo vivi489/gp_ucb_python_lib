@@ -30,12 +30,24 @@ def computeRunningAvgRegret(fx_matrix, gTruthValues):
     
 
 def run_grid(X, Y):
-    mean1 = [3, 3]
-    cov1 = [[2, 0], [0, 2]]
+    mean1 = [2, 2]
+    cov1 = [[0.25, 0], [0, 0.25]]
+    # mean1 = [0, 0]
+    # cov1 = [[0.5, 0], [0, 0.5]]
+
     mean2 = [-2, -2]
     cov2 = [[1, 0], [0, 1]]
+
+    # mean2 = [-3, -3]
+    # cov2 = [[1, 0], [0, 1]]
+    # cov2 = [[1.5, 0], [0, 1.5]]
+    # cov2 = [[3, 0], [0, 3]]
+
+    # mean3 = [3, -3]
+    # cov3 = [[0.6, 0], [0, 0.6]]
+
     mean3 = [3, -3]
-    cov3 = [[0.3, 0], [0, 0.3]]
+    cov3 = [[0.02, 0], [0, 0.02]]
     x, y = np.meshgrid(X, Y) #np.arange(-5, 5.5, 0.5), np.arange(-5, 5.5, 0.5)
     pos = np.empty(x.shape + (2,))
     pos[:, :, 0] = x; pos[:, :, 1] = y
@@ -44,15 +56,8 @@ def run_grid(X, Y):
     return y
     
 
-ACQUISITION_PARAM_DIC = {
-    'beta': 5, #for "ucb"
-    'eps': 0.10, #for "en"
-    "par": 0.01, 
-    "tsFactor": 2.0 #for "en" and "ts"
-}
-  
 acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
-nTrials = 30
+nTrials = 2
 eval_csv_dir = "./eval"
 
 font = {'weight' : 'bold',

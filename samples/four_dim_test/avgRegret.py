@@ -42,8 +42,8 @@ def run_grid(W, X, Y, Z):
 
 
 
-acFuncs = ["ucb", "pi", "ei", "en", "ts"]
-nTrials = 1
+acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
+nTrials = 30
 eval_csv_dir = "./eval"
 
 font = {'weight' : 'bold',
@@ -53,7 +53,7 @@ matplotlib.rc('font', **font)
 
 if __name__ == '__main__':
     runningAvgRegret = {}
-    colors = {"ucb":"black", "pi":"orange", "ei":"blue", "en":"red", "ts":"green"}
+    colors = {"ucb":"black", "pi":"orange", "ei":"blue", "ts":"red", "greedy":"green"}
     gTruthValues = run_grid(*(np.arange(-3, 4, 1) for _ in range(4)))
     
     for acFunc in acFuncs:
