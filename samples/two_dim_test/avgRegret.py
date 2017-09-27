@@ -30,13 +30,13 @@ def computeRunningAvgRegret(fx_matrix, gTruthValues):
     
 
 def run_grid(X, Y):
-    mean1 = [2, 2]
-    cov1 = [[0.25, 0], [0, 0.25]]
+    mean1 = [0, 0]
+    cov1 = [[0.5, 0], [0, 0.5]]
     # mean1 = [0, 0]
     # cov1 = [[0.5, 0], [0, 0.5]]
 
     mean2 = [-2, -2]
-    cov2 = [[1, 0], [0, 1]]
+    cov2 = [[0.025, 0], [0, 0.025]]
 
     # mean2 = [-3, -3]
     # cov2 = [[1, 0], [0, 1]]
@@ -47,17 +47,19 @@ def run_grid(X, Y):
     # cov3 = [[0.6, 0], [0, 0.6]]
 
     mean3 = [3, -3]
-    cov3 = [[0.02, 0], [0, 0.02]]
+    cov3 = [[2, 0], [0, 2]]
     x, y = np.meshgrid(X, Y) #np.arange(-5, 5.5, 0.5), np.arange(-5, 5.5, 0.5)
     pos = np.empty(x.shape + (2,))
     pos[:, :, 0] = x; pos[:, :, 1] = y
     y = multivariate_normal.pdf(pos, mean=mean1, cov=cov1) + multivariate_normal.pdf(pos, mean=mean2, cov=cov2) \
         + multivariate_normal.pdf(pos, mean=mean3, cov=cov3) # - multivariate_normal.pdf(x, mean=mean4, cov=cov4) * 0.1
+    #print("max ground truth =", y.max())
     return y
     
 
 acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
-nTrials = 2
+#acFuncs = ["ucb"]
+nTrials = 30
 eval_csv_dir = "./eval"
 
 font = {'weight' : 'bold',
@@ -69,7 +71,7 @@ if __name__ == '__main__':
     runningAvgRegret = {}
     colors = {"ucb":"black", "pi":"orange", "ei":"blue", "ts":"red", "greedy":"green"}
 
-    gTruthValues = run_grid(*np.meshgrid(np.arange(-5, 5, 0.5), np.arange(-5, 5, 0.5)))
+    gTruthValues = run_grid(*np.meshgrid(np.arange(-5, 5, 0.3), np.arange(-5, 5, 0.3)))
     for acFunc in acFuncs:
         runningAvgRegret[acFunc] = computeRunningAvgRegret(get_all_fx(acFunc, nTrials, eval_csv_dir), gTruthValues)
 

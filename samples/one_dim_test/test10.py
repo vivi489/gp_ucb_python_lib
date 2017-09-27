@@ -164,5 +164,5 @@ def test(ACQUISITION_FUNC):
     os.system("mv ./output/*.gif ./")
 
 if __name__ == '__main__':
-    for ac in ["ts"]:#["ucb", "pi", "ei", "en", "ts"]:
+    for ac in ["ei"]:#["ucb", "pi", "ei", "en", "ts"]:
         test(ac)

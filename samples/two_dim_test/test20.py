@@ -23,27 +23,24 @@ class GaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
 
-        mean1 = [2, 2]
-        cov1 = [[0.25, 0], [0, 0.25]]
+        mean1 = [0, 0]
+        cov1 = [[0.5, 0], [0, 0.5]]
         # mean1 = [0, 0]
         # cov1 = [[0.5, 0], [0, 0.5]]
-
+    
         mean2 = [-2, -2]
-        cov2 = [[1, 0], [0, 1]]
-
+        cov2 = [[0.025, 0], [0, 0.025]]
+    
         # mean2 = [-3, -3]
         # cov2 = [[1, 0], [0, 1]]
         # cov2 = [[1.5, 0], [0, 1.5]]
         # cov2 = [[3, 0], [0, 3]]
-
+    
         # mean3 = [3, -3]
         # cov3 = [[0.6, 0], [0, 0.6]]
-
+    
         mean3 = [3, -3]
-        cov3 = [[0.02, 0], [0, 0.02]]
-
-        #mean4 = [0, 0]
-        #cov4 = [[0.1, 0], [0, 0.1]]
+        cov3 = [[2, 0], [0, 2]]
 
         assert x.ndim in [1, 2]
         y = multivariate_normal.pdf(x, mean=mean1, cov=cov1) + multivariate_normal.pdf(x, mean=mean2, cov=cov2) \
@@ -163,7 +160,7 @@ if __name__ == '__main__':
 #            iterCount += 1
     mkdir_if_not_exist(os.path.join(os.getcwd(), "eval"))
         
-    acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
+    acFuncs = ["ucb"]
     nTrials = [30] * len(acFuncs)
     jobs = []
     for acFuncs, nTrial in zip(acFuncs, nTrials):

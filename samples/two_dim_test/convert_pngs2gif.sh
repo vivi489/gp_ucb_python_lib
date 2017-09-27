@@ -8,3 +8,4 @@ output_gif_name=./output/$1
 #./output/animated.gif
 
 convert -layers optimize -loop 1 -delay 20 -dispose previous $input_wildcarded_image_name $output_gif_name
+

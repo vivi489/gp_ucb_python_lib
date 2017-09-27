@@ -71,7 +71,7 @@ INITIAL_K = 10
 INITIAL_THETA = 10
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
-ACQUISITION_FUNC = 'pi'  # 'ei'
+ACQUISITION_FUNC = 'ei'  # 'ei'
 ACQUISITION_PARAM_DIC = {
     'beta': 5,
     "par": 0.01

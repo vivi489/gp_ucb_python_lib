@@ -1,18 +1,16 @@
 # coding: utf-8
-import os
+import os, subprocess
 
 import numpy as np
 import pandas as pd
 from scipy.stats import multivariate_normal
 
 from sklearn.gaussian_process.kernels import Matern, RBF, ConstantKernel as C
-from gphypo.egmrf_ucb import EGMRF_UCB, create_normalized_X_grid
 # from gphypo.egmrf_ucb import EGMRF_UCB
 from gphypo.env import BasicEnvironment
 from gphypo.gmrf_bo import GMRF_BO
-from gphypo.gpucb import GPUCB
 from gphypo.normalization import zero_mean_unit_var_normalization
-from gphypo.util import mkdir_if_not_exist, plot_loss
+from gphypo.util import mkdir_if_not_exist
 
 
 # from tqdm import tqdm_notebook as tqdm
@@ -95,11 +93,13 @@ output_dir = 'output'# _gmrf_min0max1_easy'
 parameter_dir = os.path.join('param_dir', 'csv_files')
 result_filename = os.path.join(output_dir, 'gaussian_result_2dim.csv')
 
-ACQUISITION_FUNC = 'ucb'  # 'ei'
+ACQUISITION_FUNC = 'ts'  # 'ei'
 ACQUISITION_PARAM_DIC = {
-    'beta': 5
+    'beta': 5, #for "ucb"
+    'eps': 0.20, #for "en"
+    "par": 0.01, 
+    "tsFactor": 1.0 #for "en" and "ts"
 }
-
 # ACQUISITION_FUNC = 'ei' # 'ei' or 'pi'
 # ACQUISITION_PARAM_DIC = {
 #     'par': 0.
@@ -165,8 +165,9 @@ def main():
             print("Learnig process was forced to stop!")
             break
 
-    plot_loss(agent.point_info_manager.T_seq, 'reward.png')
-
+    #plot_loss(agent.point_info_manager.T_seq, 'reward.png')
+    subprocess.call(["./convert_pngs2gif.sh demo_%s_eps_%f.gif"%(ACQUISITION_FUNC, ACQUISITION_PARAM_DIC["eps"])], shell=True)
+    os.system("mv ./output/*.gif ./")
 
 def calc_real_gamma_y():
     env = GaussianEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, result_filename=result_filename,
