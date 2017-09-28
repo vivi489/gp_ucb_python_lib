@@ -30,13 +30,13 @@ def computeRunningAvgRegret(fx_matrix, gTruthValues):
     
 
 def run_grid(X, Y):
-    mean1 = [0, 0]
-    cov1 = [[0.5, 0], [0, 0.5]]
+    mean1 = [-3, 3]
+    cov1 = [[0.025, 0], [0, 0.025]]
     # mean1 = [0, 0]
     # cov1 = [[0.5, 0], [0, 0.5]]
 
-    mean2 = [-2, -2]
-    cov2 = [[0.025, 0], [0, 0.025]]
+    mean2 = [0, 0]
+    cov2 = [[2.25, 0], [0, 2.25]]
 
     # mean2 = [-3, -3]
     # cov2 = [[1, 0], [0, 1]]
@@ -47,7 +47,7 @@ def run_grid(X, Y):
     # cov3 = [[0.6, 0], [0, 0.6]]
 
     mean3 = [3, -3]
-    cov3 = [[2, 0], [0, 2]]
+    cov3 = [[0.25, 0], [0, 0.25]]
     x, y = np.meshgrid(X, Y) #np.arange(-5, 5.5, 0.5), np.arange(-5, 5.5, 0.5)
     pos = np.empty(x.shape + (2,))
     pos[:, :, 0] = x; pos[:, :, 1] = y
@@ -57,9 +57,9 @@ def run_grid(X, Y):
     return y
     
 
-acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
-#acFuncs = ["ucb"]
-nTrials = 30
+#acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
+acFuncs = ["ucb", "ei", "ts"]
+nTrials = 18
 eval_csv_dir = "./eval"
 
 font = {'weight' : 'bold',

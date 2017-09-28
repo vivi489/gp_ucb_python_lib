@@ -100,7 +100,7 @@ class GreedyEps(BaseAcquisitionFunction):
         #mask = np.zeros(mu.shape).astype(np.float64)
         #mask[int(np.random.rand()*len(mask))] = 1.0
         drop = kwargs["drop"]
-        return np.random.normal(mu, sigma * self.tsFactor) if (np.random.rand()<=self.eps and drop) else (mu + sigma * np.sqrt(self.get_beta()))
+        return np.random.normal(mu, sigma * self.tsFactor) if (np.random.rand()<=self.eps and drop) else mu#(mu + sigma * np.sqrt(self.get_beta()))
 
 
 
