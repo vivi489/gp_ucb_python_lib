@@ -138,7 +138,7 @@ class GMRF_BO(BaseBO):
         self.baseTau0 = tau0
         row_idxes, col_idxes, _ = scipy.sparse.find(self.baseTau0 != 0)
         self.adj_pair_list = [(r, c) for r, c in zip(row_idxes, col_idxes)]
-
+        
         # Grid-based BurnIn
         if burnin and not environment.reload:
             if self.n_ctr:
@@ -152,7 +152,7 @@ class GMRF_BO(BaseBO):
 
         self.update()
         self.total_clicked_ratio_list = []
-        
+
         
     def do_all_point_burnin(self):
         n_sample_per_point = int(self.n_ctr / self.n_points)
@@ -216,9 +216,10 @@ class GMRF_BO(BaseBO):
         continue_flg = self.sample(self.X_grid[grid_idx]) # self.sample alters the optimizer's point info manager which contains all the points
         if not continue_flg:
             return False
-
+        #print("does_pairwise_sampling=", self.does_pairwise_sampling)
         if self.does_pairwise_sampling:
             adj_idx = self.get_pairwise_idx(grid_idx)
+            
             continue_flg = self.sample(self.X_grid[adj_idx])
             if not continue_flg:
                 return False

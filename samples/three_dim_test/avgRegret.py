@@ -33,7 +33,7 @@ def run_grid(X, Y, Z):
     cov1 = np.eye(3) * 1
     
     mean2 = [-4, -4, -4]
-    cov2 = np.eye(3) * 0.2
+    cov2 = np.eye(3) * 0.02
     
     # mean3 = [-2, 5, 0]
     # cov3 = np.eye(3) * 1
@@ -44,9 +44,9 @@ def run_grid(X, Y, Z):
     y = multivariate_normal.pdf(XRange, mean=mean1, cov=cov1) + multivariate_normal.pdf(XRange, mean=mean2, cov=cov2)
     return y
 
-  
+
 acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
-nTrials = 30
+nTrials = 6
 eval_csv_dir = "./eval"
 
 font = {'weight' : 'bold',
@@ -70,3 +70,4 @@ if __name__ == '__main__':
     plt.legend(handles, acFuncs)
     plt.savefig("eval.eps", format='eps')
     plt.close()
+

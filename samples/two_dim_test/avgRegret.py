@@ -58,8 +58,8 @@ def run_grid(X, Y):
     
 
 #acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
-acFuncs = ["ucb", "ei", "ts"]
-nTrials = 18
+acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
+nTrials = 30
 eval_csv_dir = "./eval"
 
 font = {'weight' : 'bold',

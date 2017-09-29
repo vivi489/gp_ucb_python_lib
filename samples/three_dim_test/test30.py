@@ -29,7 +29,7 @@ class ThreeDimGaussianEnvironment(BasicEnvironment):
         cov1 = np.eye(3) * 1
 
         mean2 = [-4, -4, -4]
-        cov2 = np.eye(3) * 0.2
+        cov2 = np.eye(3) * 0.02
 
         # mean3 = [-2, 5, 0]
         # cov3 = np.eye(3) * 1
@@ -63,7 +63,7 @@ GAMMA_Y = 10 ** (-2)  # weight of adjacen
 
 IS_EDGE_NORMALIZED = True
 
-BURNIN = True
+BURNIN = False
 UPDATE_HYPERPARAM_FUNC = 'pairwise_sampling'  # None
 
 INITIAL_K = 10
@@ -148,10 +148,10 @@ if __name__ == '__main__':
 #            test(ac, iterCount)
 #            iterCount += 1
     mkdir_if_not_exist(os.path.join(os.getcwd(), "eval"))
-    acFuncs = sys.argv[1]
+    acFunc = sys.argv[1]
     nTrials = 30
 
-    testForTrials(acFuncs, nTrials)
+    testForTrials(acFunc, nTrials)
 #        p = Process(target=testForTrials, args=(acFuncs, nTrial))
 #        jobs.append(p)
 #        p.start()

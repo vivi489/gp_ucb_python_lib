@@ -159,8 +159,8 @@ if __name__ == '__main__':
 #            test(ac, iterCount)
 #            iterCount += 1
     mkdir_if_not_exist(os.path.join(os.getcwd(), "eval"))
-        
-    acFuncs = ["ucb", "ei", "ts"]
+
+    acFuncs = ["pi", "greedy"]
     nTrials = [30] * len(acFuncs)
     jobs = []
     for acFuncs, nTrial in zip(acFuncs, nTrials):
