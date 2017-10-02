@@ -69,7 +69,6 @@ class Thompson(BaseAcquisitionFunction):
         self.learn_cnt = 1
         self.type = type
         self.d_size = d_size
-        self.tsFactor = self.param_dic["tsFactor"]
 
     def compute(self, mu, sigma, observation_list, **args):
         #beta = self.get_beta()
@@ -84,7 +83,6 @@ class GreedyEps(BaseAcquisitionFunction):
         self.type = type
         self.d_size = d_size
         self.eps = self.param_dic['eps'] # interval [0, 1]
-        self.tsFactor = self.param_dic["tsFactor"]
 
     def get_beta(self):
         global beta
@@ -100,7 +98,7 @@ class GreedyEps(BaseAcquisitionFunction):
         #mask = np.zeros(mu.shape).astype(np.float64)
         #mask[int(np.random.rand()*len(mask))] = 1.0
         drop = kwargs["drop"]
-        return np.random.normal(mu, sigma * self.tsFactor) if (np.random.rand()<=self.eps and drop) else mu#(mu + sigma * np.sqrt(self.get_beta()))
+        return np.random.normal(mu, sigma) if (np.random.rand()<=self.eps and drop) else mu#(mu + sigma * np.sqrt(self.get_beta()))
 
 
 

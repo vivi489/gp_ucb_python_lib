@@ -24,13 +24,11 @@ class ThreeDimGaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gr=False, n_exp=1):
         mean1 = [3, 3, 3]
-        cov1 = np.eye(3) * 1.5
-        
+        cov1 = np.eye(3) * 1.0
         mean2 = [-2, -2, -2]
-        cov2 = np.eye(3) * 0.025
-        
+        cov2 = np.eye(3) * 0.25
         mean3 = [0, 0, 0]
-        cov3 = np.eye(3) * 1.0
+        cov3 = np.eye(3) * 2.0
 
         assert x.ndim in [1, 2]
 
@@ -52,12 +50,12 @@ NORMALIZE_OUTPUT = None
 
 reload = False
 # reload = True
-N_EARLY_STOPPING = 1000
+N_EARLY_STOPPING = None
 
 ALPHA = ndim ** 2  # prior:
 GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
-GAMMA_Y = 10 ** (-2)  # weight of adjacen
+GAMMA_Y = 10 ** (-3)  # weight of adjacency
 
 IS_EDGE_NORMALIZED = True
 
@@ -77,7 +75,6 @@ ACQUISITION_PARAM_DIC = {
     'beta': 5, #for "ucb"
     'eps': 0.20, #for "greedy"
     "par": 0.01, 
-    "tsFactor": 1.0 #for "greedy" and "ts"
 }
 
 
@@ -121,7 +118,7 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     nIter = 500
     for i in range(nIter):
         #print(ACQUISITION_FUNC, "iteration =", i)
-        flg = agent.learn(drop=True if i<nIter-1 else False)
+        flg = agent.learn()
         #agent.plot(output_dir=OUTPUT_DIR)
         #agent.save_mu_sigma_csv()
         if flg == False:
@@ -147,7 +144,7 @@ if __name__ == '__main__':
 #            iterCount += 1
     mkdir_if_not_exist(os.path.join(os.getcwd(), "eval"))
     acFunc = sys.argv[1]
-    nTrials = 30
+    nTrials = 300
 
     testForTrials(acFunc, nTrials)
 #        p = Process(target=testForTrials, args=(acFuncs, nTrial))

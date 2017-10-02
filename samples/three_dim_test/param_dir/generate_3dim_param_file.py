@@ -6,9 +6,9 @@ import pandas as pd
 from gphypo.util import mkdir_if_not_exist
 
 gp_param_dic = {
-    'x': np.arange(-5, 5.25, 0.5),
-    'y': np.arange(-5, 5.25, 0.5),
-    'z': np.arange(-5, 5.25, 0.5)
+    'x': np.arange(-5, 5.25, 1),
+    'y': np.arange(-5, 5.25, 1),
+    'z': np.arange(-5, 5.25, 1)
 
 }
 

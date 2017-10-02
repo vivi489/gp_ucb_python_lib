@@ -164,7 +164,7 @@ class GMRF_BO(BaseBO):
         burnin = 2 ** self.ndim
         quarter_point_list = [[bo_param[len(bo_param) // 4], bo_param[len(bo_param) // 4 * 3]] for bo_param in
                               self.bo_param_list]
-
+        #print("quarter_point_list:", quarter_point_list)
         for coodinate in itertools.product(*quarter_point_list):
             coodinate = np.array(coodinate)
             self.sample(coodinate, self.n_ctr)
@@ -219,7 +219,6 @@ class GMRF_BO(BaseBO):
         #print("does_pairwise_sampling=", self.does_pairwise_sampling)
         if self.does_pairwise_sampling:
             adj_idx = self.get_pairwise_idx(grid_idx)
-            
             continue_flg = self.sample(self.X_grid[adj_idx])
             if not continue_flg:
                 return False
