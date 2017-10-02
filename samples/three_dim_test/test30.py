@@ -1,4 +1,3 @@
-# coding: utf-8
 import os, time, shutil, sys
 
 import numpy as np
@@ -6,7 +5,6 @@ import pandas as pd
 from gphypo.env import BasicEnvironment
 from gphypo.gmrf_bo import GMRF_BO
 
-from multiprocessing import Process
 
 from gphypo.util import mkdir_if_not_exist
 from scipy.stats import multivariate_normal
@@ -26,19 +24,19 @@ class ThreeDimGaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gr=False, n_exp=1):
         mean1 = [3, 3, 3]
-        cov1 = np.eye(3) * 1
-
-        mean2 = [-4, -4, -4]
-        cov2 = np.eye(3) * 0.02
-
-        # mean3 = [-2, 5, 0]
-        # cov3 = np.eye(3) * 1
+        cov1 = np.eye(3) * 1.5
+        
+        mean2 = [-2, -2, -2]
+        cov2 = np.eye(3) * 0.025
+        
+        mean3 = [0, 0, 0]
+        cov3 = np.eye(3) * 1.0
 
         assert x.ndim in [1, 2]
 
         obs = multivariate_normal.pdf(x, mean=mean1, cov=cov1) \
               + multivariate_normal.pdf(x, mean=mean2, cov=cov2) \
-            # + multivariate_normal.pdf(x, mean=mean3, cov=cov3)
+              + multivariate_normal.pdf(x, mean=mean3, cov=cov3)
         return obs
 
 
