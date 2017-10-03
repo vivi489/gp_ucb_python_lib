@@ -73,7 +73,8 @@ class Thompson(BaseAcquisitionFunction):
     def compute(self, mu, sigma, observation_list, **args):
         #beta = self.get_beta()
         self.learn_cnt += 1
-        return np.random.normal(mu, sigma)
+        #print("observation_list:", observation_list)
+        return np.random.normal(mu, sigma) #np.random.normal(mu, sigma)
 
 
 class GreedyEps(BaseAcquisitionFunction):
@@ -97,8 +98,7 @@ class GreedyEps(BaseAcquisitionFunction):
         self.learn_cnt += 1
         #mask = np.zeros(mu.shape).astype(np.float64)
         #mask[int(np.random.rand()*len(mask))] = 1.0
-        drop = kwargs["drop"]
-        return np.random.normal(mu, sigma) if (np.random.rand()<=self.eps and drop) else mu#(mu + sigma * np.sqrt(self.get_beta()))
+        return np.random.normal(mu, sigma) if np.random.rand()<=self.eps else mu#(mu + sigma * np.sqrt(self.get_beta()))
 
 
 

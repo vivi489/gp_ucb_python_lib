@@ -1,5 +1,5 @@
 # coding: utf-8
-import os, shutil, time
+import os, shutil, time, sys
 
 import numpy as np
 import pandas as pd
@@ -91,7 +91,6 @@ ACQUISITION_PARAM_DIC = {
     'beta': 5, #for "ucb"
     'eps': 0.20, #for "en"
     "par": 0.01, 
-    "tsFactor": 1.0 #for "en" and "ts"
 }
 
     
@@ -128,14 +127,14 @@ def singleTest(ACQUISITION_FUNC, trialCount):
 
     agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
                     is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
-                    burnin=BURNIN,
+                    burnin=BURNIN, n_stop_pairwise_sampling=300, 
                     normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
                     initial_k=INITIAL_K, initial_theta=INITIAL_THETA, acquisition_func=ACQUISITION_FUNC,
                     acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
     nIter = 1000
     for i in range(nIter):
-        flg = agent.learn(drop=True if i<nIter-1 else False)
+        flg = agent.learn()
         #agent.plot(output_dir=OUTPUT_DIR)
         # agent.save_mu_sigma_csv()
         if flg == False:
@@ -145,9 +144,9 @@ def singleTest(ACQUISITION_FUNC, trialCount):
             break
     os.system("mv %s/*.csv ./eval/"%OUTPUT_DIR)
 
-def testForTrials(acFunc, nIter):
+def testForTrials(acFunc, nTrials):
     trialCount = 0
-    while trialCount < nIter:
+    while trialCount < nTrials:
         #np.random.seed(int(time.time()))
         singleTest(acFunc, trialCount)
         trialCount += 1
@@ -160,14 +159,7 @@ if __name__ == '__main__':
 #            iterCount += 1
     mkdir_if_not_exist(os.path.join(os.getcwd(), "eval"))
 
-    acFuncs = ["pi", "greedy"]
-    nTrials = [30] * len(acFuncs)
-    jobs = []
-    for acFuncs, nTrial in zip(acFuncs, nTrials):
-        #testForTrials(acFuncs, nTrial)
-        p = Process(target=testForTrials, args=(acFuncs, nTrial))
-        jobs.append(p)
-        p.start()
-    
-    for p in jobs:
-        p.join()
+    acFunc = sys.argv[1]
+    nTrials = 30
+    testForTrials(acFunc, nTrials)
+

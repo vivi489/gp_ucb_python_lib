@@ -1,4 +1,3 @@
-# coding: utf-8
 import os
 import subprocess
 from abc import ABCMeta, abstractmethod
@@ -73,8 +72,8 @@ class BaseBO(object):
         self.point_info_manager = PointInfoManager(self.X_grid, self.normalize_output)
         self._set_early_stopping_params(n_early_stopping)
 
-        self.mu = np.random.randn(self.n_points)
-        self.sigma = abs(np.random.randn(self.n_points))
+        self.mu = abs(np.random.randn(self.n_points))
+        self.sigma = abs(np.random.randn(self.n_points)) * 2.5
         self.n_ctr = n_ctr
         self.randomly_total_clicked_ratio_list = []
         
@@ -183,10 +182,10 @@ class BaseBO(object):
         self.randomly_total_clicked_ratio_list.append(total_clicked_ratio)
 
     # Generate the observation value
-    def sample(self, x, n_exp=None): # performs environment sampling on x #extremely IMPORTANT
+    def sample(self, x, n_exp=None, overwrite=True): # performs environment sampling on x #extremely IMPORTANT
         #print("base sample:n_exp=", n_exp)
         if n_exp is not None and n_exp > 1:
-            n1 = self.environment.sample(x, n_exp=n_exp)  # Returns the number of clicks
+            n1 = self.environment.sample(x, n_exp=n_exp, overwrite=overwrite)  # Returns the number of clicks
             n0 = n_exp - n1  # Calculates the number of unclick
             t = transform_click_val2real_val(n0, n1)
             if type(t) == list or type(t) == np.ndarray:
@@ -194,7 +193,7 @@ class BaseBO(object):
             self.point_info_manager.update(x, {t: n_exp})
         else: #when n_exp==0, self.environment.sample(n_exp=1) by default, written to self.environment.result_df
             #print("base sample: n_exp<=1", n_exp)
-            t = self.environment.sample(x)
+            t = self.environment.sample(x, overwrite=overwrite)
             if type(t) == list or type(t) == np.ndarray:
                 t = t[0]
             self.point_info_manager.update(x, {t: 1})

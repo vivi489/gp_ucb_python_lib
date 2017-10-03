@@ -4,7 +4,7 @@ from multiprocessing import Process, Pool
 
         
 if __name__ == '__main__':
-    acFuncs = ["ei", "pi", "ucb", "greedy", "ts"]
+    acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
     jobs = []
     for acFunc in acFuncs:
         p = subprocess.Popen(["python", "./test30.py", acFunc], stderr=None)

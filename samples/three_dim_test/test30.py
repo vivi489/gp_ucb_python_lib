@@ -19,23 +19,28 @@ from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, Matern
 # OFFSET = 10
 
 class ThreeDimGaussianEnvironment(BasicEnvironment):
-    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload):
+    def __init__(self, bo_param2model_param_dic, result_filename, output_dir, reload, noiseVar=0.025):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
+        self.noiseVar = noiseVar
 
-    def run_model(self, model_number, x, calc_gr=False, n_exp=1):
+    def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         mean1 = [3, 3, 3]
         cov1 = np.eye(3) * 1.0
         mean2 = [-2, -2, -2]
-        cov2 = np.eye(3) * 0.25
+        cov2 = np.eye(3) * 0.5
         mean3 = [0, 0, 0]
         cov3 = np.eye(3) * 2.0
 
         assert x.ndim in [1, 2]
 
-        obs = multivariate_normal.pdf(x, mean=mean1, cov=cov1) \
+        y = multivariate_normal.pdf(x, mean=mean1, cov=cov1) \
               + multivariate_normal.pdf(x, mean=mean2, cov=cov2) \
               + multivariate_normal.pdf(x, mean=mean3, cov=cov3)
-        return obs
+        y *= 100
+        #print("y=", y)
+        if not calc_gt:
+            y += np.random.normal(loc=0, scale=np.sqrt(self.noiseVar))
+        return y
 
 
 
@@ -55,7 +60,7 @@ N_EARLY_STOPPING = None
 ALPHA = ndim ** 2  # prior:
 GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
-GAMMA_Y = 10 ** (-3)  # weight of adjacency
+GAMMA_Y = 10 ** (-2) # weight of adjacency
 
 IS_EDGE_NORMALIZED = True
 
@@ -100,9 +105,7 @@ def singleTest(ACQUISITION_FUNC, trialCount):
         bo_param_list.append(param_df[param_name].values)
         param_df.set_index(param_name, inplace=True)
         bo_param2model_param_dic[param_name] = param_df.to_dict()['bo_' + param_name]
-# env = ThreeDimEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, result_filename=RESULT_FILENAME,
-#                           output_dir=output_dir,
-#                           reload=reload)
+
     env = ThreeDimGaussianEnvironment(bo_param2model_param_dic=bo_param2model_param_dic, result_filename=RESULT_FILENAME,
                                       output_dir=OUTPUT_DIR,
                                       reload=reload)
@@ -110,7 +113,7 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     
     agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
                     is_edge_normalized=IS_EDGE_NORMALIZED, gt_available=True, n_early_stopping=N_EARLY_STOPPING,
-                    burnin=BURNIN,
+                    burnin=BURNIN, n_stop_pairwise_sampling=150, 
                     normalize_output=NORMALIZE_OUTPUT, update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
                     initial_k=INITIAL_K, initial_theta=INITIAL_THETA, acquisition_func=ACQUISITION_FUNC,
                 acquisition_param_dic=ACQUISITION_PARAM_DIC)
@@ -129,9 +132,9 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     os.system("mv %s/*.csv ./eval/"%OUTPUT_DIR)
 
 
-def testForTrials(acFunc, nIter):
+def testForTrials(acFunc, nTrials):
     trialCount = 0
-    while trialCount < nIter:
+    while trialCount < nTrials:
         #np.random.seed(int(time.time()))
         singleTest(acFunc, trialCount)
         trialCount += 1
@@ -144,7 +147,7 @@ if __name__ == '__main__':
 #            iterCount += 1
     mkdir_if_not_exist(os.path.join(os.getcwd(), "eval"))
     acFunc = sys.argv[1]
-    nTrials = 300
+    nTrials = 30
 
     testForTrials(acFunc, nTrials)
 #        p = Process(target=testForTrials, args=(acFuncs, nTrial))

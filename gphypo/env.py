@@ -74,7 +74,7 @@ class BasicEnvironment(object):
     def run_model(self, n_model, x, calc_gt=False, n_exp=1):
         pass
 
-    def sample(self, x, get_ground_truth=False, n_exp=1): # it seems x has to be 1d array and only 1d
+    def sample(self, x, get_ground_truth=False, n_exp=1, overwrite=True): # it seems x has to be 1d array and only 1d
         if get_ground_truth:
             processed_x = self.preprocess_x(x, get_ground_truth=True)
             result = self.run_model(-1, processed_x, True)
@@ -95,7 +95,8 @@ class BasicEnvironment(object):
         # result_df is preread from files during initialization
         self.result_df.loc[len(self.result_df)] = list(map(str, list(x) + list(processed_x) + [n_exp, result]))
         # update and overwrite the file
-        self.result_df.to_csv(self.result_filename, index=False) 
+        if overwrite:
+            self.result_df.to_csv(self.result_filename, index=False)
         
         #msg = 'No.%04d model finished! Result was %f' % (n_model, result)
         #print(msg)
