@@ -17,7 +17,7 @@ def get_all_fx(acFunc, nTrials, eval_csv_dir):
 def computeRunningAvgRegret(fx_matrix, gTruthValues):
     #fx_matrix has one iter. fx on each row
     maxMask = np.zeros_like(fx_matrix) + gTruthValues.max()
-    print("max groung truth = ", gTruthValues.max())
+    print("max ground truth = ", gTruthValues.max())
     fx_matrix = maxMask - fx_matrix
     avgRegretsPerStep = fx_matrix.mean(axis=0)
     runningAvg = []
@@ -46,7 +46,7 @@ def run_grid(X, Y, Z):
 
 
 acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
-nTrials = 1
+nTrials = 17
 eval_csv_dir = "./eval"
 
 font = {'weight' : 'bold',

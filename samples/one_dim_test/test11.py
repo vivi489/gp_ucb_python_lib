@@ -43,7 +43,7 @@ class OneDimGaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         assert x.ndim in [1, 2]
-        y = norm.pdf(x, loc=-3, scale=0.15) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
+        y = norm.pdf(x, loc=-3, scale=0.1) + norm.pdf(x, loc=3, scale=0.5) + norm.pdf(x, loc=0, scale=1.5)
         if not calc_gt:
             y += np.random.normal(loc=0, scale=np.sqrt(self.noiseVar))
         return y
@@ -57,10 +57,15 @@ MEAN, STD = 0, 1
 RELOAD = False
 N_EARLY_STOPPING = None
 
-ALPHA = ndim ** 2  # MEAN  # prior:
-GAMMA = 6  # 10 ** (-2) * 2 * ndim
+#ALPHA = ndim ** 2  # MEAN  # prior:
+#GAMMA = 6  # 10 ** (-2) * 2 * ndim
+#GAMMA0 = 0.01 * GAMMA
+#GAMMA_Y = 3  # 10 ** (-2)  # weight of adjacen
+
+ALPHA = ndim ** 2  # prior:
+GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
-GAMMA_Y = 3  # 10 ** (-2)  # weight of adjacen
+GAMMA_Y = 10 ** (-2) # weight of adjacency
 
 IS_EDGE_NORMALIZED = True
 
@@ -75,7 +80,6 @@ ACQUISITION_PARAM_DIC = {
     'beta': 5, #for "ucb"
     'eps': 0.20, #for "greedy"
     "par": 0.01, 
-    "tsFactor": 1.0 #for "greedy" and "ts"
 }
 
 
@@ -133,29 +137,29 @@ def singleTest(ACQUISITION_FUNC, trialCount):
                                     output_dir=OUTPUT_DIR,
                                     reload=RELOAD)
     
-#    agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
-#                     is_edge_normalized=IS_EDGE_NORMALIZED, 
-#                     gt_available=True, 
-#                     n_early_stopping=N_EARLY_STOPPING,
-#                     burnin=BURNIN,
-#                     normalize_output=NORMALIZE_OUTPUT, 
-#                     update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
-#                     initial_k=INITIAL_K, 
-#                     initial_theta=INITIAL_THETA, 
-#                     acquisition_func=ACQUISITION_FUNC,
-#                     acquisition_param_dic=ACQUISITION_PARAM_DIC)
+    agent = GMRF_BO(bo_param_list, env, GAMMA=GAMMA, GAMMA0=GAMMA0, GAMMA_Y=GAMMA_Y, ALPHA=ALPHA,
+                     is_edge_normalized=IS_EDGE_NORMALIZED, 
+                     gt_available=True, 
+                     n_early_stopping=N_EARLY_STOPPING,
+                     burnin=BURNIN,
+                     normalize_output=NORMALIZE_OUTPUT, 
+                     update_hyperparam_func=UPDATE_HYPERPARAM_FUNC,
+                     initial_k=INITIAL_K, 
+                     initial_theta=INITIAL_THETA, 
+                     acquisition_func=ACQUISITION_FUNC,
+                     acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
-    agent = GP_BO(bo_param_list, env,
-                   gt_available=True, 
-                   my_kernel=kernel, 
-                   burnin=BURNIN,
-                   normalize_output=NORMALIZE_OUTPUT, 
-                   acquisition_func=ACQUISITION_FUNC,
-                   acquisition_param_dic=ACQUISITION_PARAM_DIC)
+#    agent = GP_BO(bo_param_list, env,
+#                   gt_available=True, 
+#                   my_kernel=kernel, 
+#                   burnin=BURNIN,
+#                   normalize_output=NORMALIZE_OUTPUT, 
+#                   acquisition_func=ACQUISITION_FUNC,
+#                   acquisition_param_dic=ACQUISITION_PARAM_DIC)
 
     nIter = 1000
     for i in range(nIter):
-        flg = agent.learn(drop=True if i<nIter-1 else False)
+        flg = agent.learn()
         #agent.plot(output_dir=OUTPUT_DIR) #plotting causes deadlock among processes
         #agent.save_mu_sigma_csv() #this line causes deadlock among processes (I/O contention)
         if flg == False:
@@ -169,9 +173,9 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     os.system("mv %s/*.csv ./eval/"%OUTPUT_DIR)
 
 
-def testForTrials(acFunc, nIter):
+def testForTrials(acFunc, nTrials):
     trialCount = 0
-    while trialCount < nIter:
+    while trialCount < nTrials:
         #np.random.seed(int(time.time()))
         singleTest(acFunc, trialCount)
         trialCount += 1
@@ -186,7 +190,7 @@ if __name__ == '__main__':
     mkdir_if_not_exist(os.path.join(os.getcwd(), "eval"))
         
     acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
-    nTrials = [30] * len(acFuncs)
+    nTrials = [120] * len(acFuncs)
     jobs = []
     for acFuncs, nTrial in zip(acFuncs, nTrials):
         #testForTrials(acFuncs, nTrial)

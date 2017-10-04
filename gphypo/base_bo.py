@@ -73,7 +73,7 @@ class BaseBO(object):
         self._set_early_stopping_params(n_early_stopping)
 
         self.mu = abs(np.random.randn(self.n_points))
-        self.sigma = abs(np.random.randn(self.n_points)) * 2.5
+        self.sigma = abs(np.random.randn(self.n_points)) * 2.0
         self.n_ctr = n_ctr
         self.randomly_total_clicked_ratio_list = []
         

@@ -54,10 +54,10 @@ MEAN, STD = 0, 1
 RELOAD = False
 N_EARLY_STOPPING = None
 
-ALPHA = ndim ** 2  # MEAN  # prior:
-GAMMA = 6  # 10 ** (-2) * 2 * ndim
+ALPHA = ndim ** 2  # prior:
+GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
-GAMMA_Y = 3  # 10 ** (-2)  # weight of adjacen
+GAMMA_Y = 10 ** (-2) # weight of adjacency
 
 IS_EDGE_NORMALIZED = True
 

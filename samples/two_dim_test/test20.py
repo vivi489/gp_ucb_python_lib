@@ -66,10 +66,10 @@ N_EARLY_STOPPING = None
 
 # ALPHA = MEAN  # prior:
 ALPHA = 0.001 # ndim ** 1
-
 GAMMA = 10 ** (-2) * 2 * ndim
 GAMMA0 = 0.01 * GAMMA
 GAMMA_Y = 10 ** (-2)  # weight of adjacen
+
 
 IS_EDGE_NORMALIZED = True
 

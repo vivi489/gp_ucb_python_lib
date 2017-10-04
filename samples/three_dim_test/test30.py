@@ -133,7 +133,7 @@ def singleTest(ACQUISITION_FUNC, trialCount):
 
 
 def testForTrials(acFunc, nTrials):
-    trialCount = 0
+    trialCount = 17
     while trialCount < nTrials:
         #np.random.seed(int(time.time()))
         singleTest(acFunc, trialCount)
