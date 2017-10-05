@@ -4,6 +4,7 @@ import warnings
 from operator import itemgetter
 
 import numpy as np
+import pandas as pd
 import scipy
 from scipy.optimize import fmin_l_bfgs_b
 from scipy.sparse import coo_matrix
@@ -227,17 +228,21 @@ class GMRF_BO(BaseBO):
         self.update()
         return True
 
-    def learn_from_clicks(self, mu2ratio_dir='./mu2ratio', mu_sigma_csv_fn='./mu2ratio/mu_sigma.csv',
-                          ratio_csv_fn='./mu2ratio/ratios.csv'):
-        self.call_mu2ratio(mu2ratio_dir=mu2ratio_dir, mu_sigma_csv_fn=mu_sigma_csv_fn, ratio_csv_fn=ratio_csv_fn)
-        self.sample_using_ratio_csv(ratio_csv_fn=ratio_csv_fn)
+    def learn_from_clicks(self, mu2ratio_dir='./mu2ratio_ts', mu_sigma_csv_path='./mu2ratio/mu_sigma.csv',
+                          ratio_csv_out_path='./mu2ratio/ratios.csv'):
+        if not self.acquisition_func.name == 'ts':
+            T = self.point_info_manager.get_T(excludes_none=True)
+            acValues = self.acquisition_func.compute(self.mu, self.sigma, T)
+            clickProbDistribution = acValues / acValues.sum()
+            pd.DataFrame(list(zip(range(len(self.mu)), clickProbDistribution))).to_csv(ratio_csv_out_path, header=False, index=False)
+        else:
+            self.call_mu2ratio(mu2ratio_dir=mu2ratio_dir, mu_sigma_csv_path=mu_sigma_csv_path, ratio_csv_out_path=ratio_csv_out_path) #generate a ratio csv
+        self.sample_using_ratio_csv(ratio_csv_out_path)
         self.update()
-
-        self.save_mu_sigma_csv(mu_sigma_csv_fn)
+        self.save_mu_sigma_csv(mu_sigma_csv_path)
         n_total_clicked = self.environment.result_df.output.values[-self.n_points:].astype(np.float64).sum()
         total_clicked_ratio = n_total_clicked / self.n_ctr
         self.total_clicked_ratio_list.append(total_clicked_ratio)
-        #print('ratio: %s' % total_clicked_ratio)
         return True
 
     def update(self, n_start_opt_hyper_param=0):

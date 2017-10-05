@@ -145,10 +145,10 @@ class BaseBO(object):
     def learn_from_clicks(self, ratio_csv_fn='ratio.csv'):
         pass
 
-    def call_mu2ratio(self, mu2ratio_dir='./mu2ratio', mu_sigma_csv_fn='./mu2ratio/mu_sigma.csv',
-                      ratio_csv_fn='./mu2ratio/ratios.csv'):
+    def call_mu2ratio(self, mu2ratio_dir=None, mu_sigma_csv_path=None,
+                      ratio_csv_out_path=None):
         jar_fn = os.path.join(mu2ratio_dir, 'mu2ratio.jar')
-        cmd = "java -jar {} {} {}".format(jar_fn, mu_sigma_csv_fn, ratio_csv_fn)
+        cmd = "java -jar {} {} {}".format(jar_fn, mu_sigma_csv_path, ratio_csv_out_path)
         subprocess.call(cmd, shell=True)
         #print('mu2ratio finished!!!')
 
@@ -209,7 +209,7 @@ class BaseBO(object):
             return False
         return True
 
-    def save_mu_sigma_csv(self, outfn="mu_sigma.csv", point_info_fn='point_info.csv'):
+    def save_mu_sigma_csv(self, outfn=None, point_path='point_info.csv'):
         df = pd.DataFrame({
             'mu': self.mu,
             'sigma': self.sigma
@@ -218,7 +218,7 @@ class BaseBO(object):
         df.to_csv(outfn)
         point_info_df = pd.DataFrame(self.X_grid, columns=self.environment.bo_param_names)
         point_info_df.index.name = 'point_id'
-        point_info_df.to_csv(point_info_fn)
+        #point_info_df.to_csv(point_path)
 
         self.point_info_df = point_info_df
 

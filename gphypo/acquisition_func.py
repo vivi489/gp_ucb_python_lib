@@ -9,7 +9,6 @@ class BaseAcquisitionFunction(object):
 
     def __init__(self, param_dic):
         self.param_dic = param_dic
-
     def preprocess_observation_list(self, observation_list):
         return [x for x in observation_list if x is not None]  # remove None
 
@@ -19,6 +18,7 @@ class BaseAcquisitionFunction(object):
 
 
 class EI(BaseAcquisitionFunction):
+    name = "ei"
     def compute(self, mu, sigma, observation_list, **args):
         observation_list = self.preprocess_observation_list(observation_list)
         par = self.param_dic["par"]
@@ -31,6 +31,7 @@ class EI(BaseAcquisitionFunction):
 
 
 class PI(BaseAcquisitionFunction):
+    name = "pi"
     def compute(self, mu, sigma, observation_list, **args):
         observation_list = self.preprocess_observation_list(observation_list)
         par = self.param_dic["par"]
@@ -42,6 +43,7 @@ class PI(BaseAcquisitionFunction):
 
 
 class UCB(BaseAcquisitionFunction):
+    name = "ucb"
     def __init__(self, param_dic, type="normal", d_size=None):
         super().__init__(param_dic)
         self.learn_cnt = 1
@@ -64,6 +66,7 @@ class UCB(BaseAcquisitionFunction):
     
 
 class Thompson(BaseAcquisitionFunction):
+    name = "ts"
     def __init__(self, param_dic, type="normal", d_size=None):
         super().__init__(param_dic)
         self.learn_cnt = 1
@@ -78,6 +81,7 @@ class Thompson(BaseAcquisitionFunction):
 
 
 class GreedyEps(BaseAcquisitionFunction):
+    name = "greedy"
     def __init__(self, param_dic, type="normal", d_size=None):
         super().__init__(param_dic)
         self.learn_cnt = 1
@@ -98,7 +102,12 @@ class GreedyEps(BaseAcquisitionFunction):
         self.learn_cnt += 1
         #mask = np.zeros(mu.shape).astype(np.float64)
         #mask[int(np.random.rand()*len(mask))] = 1.0
-        return np.random.normal(mu, sigma) if np.random.rand()<=self.eps else mu#(mu + sigma * np.sqrt(self.get_beta()))
+        if np.random.rand()<=self.eps:
+            return np.random.normal(mu, sigma) 
+        else:
+            retVal = np.zeros(len(mu))
+            retVal[np.argmax(mu)] = 1
+            return retVal
 
 
 
