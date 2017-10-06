@@ -1,7 +1,5 @@
 # coding: utf-8
-import os, shutil
-import random
-
+import os, shutil, sys, random
 import numpy as np
 import pandas as pd
 from scipy.special import logit
@@ -86,13 +84,15 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     mu_sigma_csv_path = './mu2ratio_%s/mu_sigma.csv'%ACQUISITION_FUNC
     ratio_csv_out_path = './mu2ratio_%s/ratios.csv'%ACQUISITION_FUNC
     #point_path = './mu2ratio_%s/point_info.csv'%ACQUISITION_FUNC
-    N_TOTAL_EXP = 10000
+    N_TOTAL_EXP = 100000
     
     print('GAMMA: ', GAMMA)
     print('GAMMA_Y: ', GAMMA_Y)
     print('GAMMA0:', GAMMA0)
     
+    MU2RATIO_DIR = './mu2ratio_%s'%ACQUISITION_FUNC
     mkdir_if_not_exist(OUTPUT_DIR)
+    mkdir_if_not_exist(MU2RATIO_DIR)
     
     param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
     
@@ -121,11 +121,11 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     agent.save_mu_sigma_csv(outfn=mu_sigma_csv_path)
     # agent.plot_click_distribution(output_dir)
     # agent.learn_from_clicks()
-
+    
     nIter = 100
     for i in range(nIter):
         try:
-            flg = agent.learn_from_clicks(mu2ratio_dir='./mu2ratio_%s'%ACQUISITION_FUNC, 
+            flg = agent.learn_from_clicks(mu2ratio_dir=MU2RATIO_DIR, 
                                           mu_sigma_csv_path=mu_sigma_csv_path, 
                                           ratio_csv_out_path=ratio_csv_out_path)
             # agent.sample_randomly()
@@ -146,4 +146,16 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     #print(agent.total_clicked_ratio_list)
     #print(agent.randomly_total_clicked_ratio_list)
 
-singleTest("ts", 0)
+
+def main(argv):
+    nTrials = 30
+    for trial in range(nTrials):
+        singleTest(argv[0], trial)
+    
+if __name__ == "__main__":
+    main(sys.argv[1:])
+    
+    
+
+    
+    

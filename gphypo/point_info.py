@@ -80,6 +80,7 @@ class PointInfoManager(object):
         if self.normalize_output == 'zero_mean_unit_var':
             observed_normalized_T, self.T_mean, self.T_std =\
                 normalization.zero_mean_unit_var_normalization(observed_real_T)
+            #print("after get_normalized_T:", self.T_mean, self.T_std)
         elif self.normalize_output == 'zero_one':
             observed_normalized_T, self.T_lower, self.T_upper =\
                 normalization.zero_one_normalization(observed_real_T)
@@ -107,29 +108,20 @@ class PointInfoManager(object):
         observed_idx = [i for i, t in enumerate(T) if t is not None]
         return self.X_grid[observed_idx], T[observed_idx]
 
-    # should be deprecated
-    def set_normalized_params(self):
-        observed_real_T = self.get_real_T(excludes_none=True)
-
-        if self.normalize_output == 'zero_mean_unit_var':
-            _, self.T_mean, self.T_std = normalization.zero_mean_unit_var_normalization(observed_real_T)
-
-        elif self.normalize_output == 'zero_one':
-            _, self.T_lower, self.T_upper = normalization.zero_one_normalization(observed_real_T)
-
     def get_unnormalized_value_list(self, value_list):
         if self.normalize_output == 'zero_mean_unit_var':
             return normalization.zero_mean_unit_var_unnormalization(value_list, self.T_mean, self.T_std)
-
         elif self.normalize_output == 'zero_one':
             return normalization.zero_one_unnormalization(value_list, self.T_lower, self.T_upper)
 
     def get_sum_grid(self):
         if self.normalize_output == 'zero_mean_unit_var':
             # self.set_normalized_params()
-            return np.array(
-                [point_info.get_total_zero_mean_unit_var_normalized_val(self.T_mean, self.T_std)
-                    for point_info in self.point_info_list])
+#            print("self.T_mean, self.T_std\n",self.T_mean, self.T_std)
+#            print("point mean\n", [point_info.get_mean() for point_info in self.point_info_list])
+#            print("point normal\n", [point_info.get_total_zero_mean_unit_var_normalized_val(self.T_mean, self.T_std) for point_info in self.point_info_list])
+            return np.array([point_info.get_total_zero_mean_unit_var_normalized_val(self.T_mean, self.T_std)
+                             for point_info in self.point_info_list])
         elif self.normalize_output == 'zero_one':
             # self.set_normalized_params()
             return np.array(

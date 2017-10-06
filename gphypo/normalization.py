@@ -20,11 +20,10 @@ def zero_one_unnormalization(X_normalized, lower, upper):
 
 
 def zero_mean_unit_var_normalization(X, mean=None, std=None):
-    if len(X) < 2:
-        return X, np.nan, np.nan
-    # if len(X) < 2:
-    #     return 0, np.nan, np.nan
-
+#    if len(X) < 2:
+#        return X, np.nan, np.nan
+    if len(X) == 0:
+        return X, None, None
     if mean is None:
         mean = np.mean(X, axis=0)
     if std is None:
@@ -34,7 +33,6 @@ def zero_mean_unit_var_normalization(X, mean=None, std=None):
 
     except ZeroDivisionError:
         return X, mean, 0
-
     return X_normalized, mean, std
 
 

@@ -63,7 +63,7 @@ class UCB(BaseAcquisitionFunction):
         beta = self.get_beta()
         self.learn_cnt += 1
         return mu + sigma * np.sqrt(beta)
-    
+
 
 class Thompson(BaseAcquisitionFunction):
     name = "ts"
@@ -89,26 +89,16 @@ class GreedyEps(BaseAcquisitionFunction):
         self.d_size = d_size
         self.eps = self.param_dic['eps'] # interval [0, 1]
 
-    def get_beta(self):
-        global beta
-        if self.type == "normal":
-            beta = self.param_dic['beta']
-        elif self.type == 'theorem1':
-            delta = 0.9  # must be in (0, 1)
-            beta = 2 * np.log(self.d_size * ((self.learn_cnt * np.pi) ** 2) / (6 * delta))
-        return beta
-
-    def compute(self, mu, sigma, observation_list, **kwargs): 
+    def compute(self, mu, sigma, observation_list, **kwargs):
         self.learn_cnt += 1
         #mask = np.zeros(mu.shape).astype(np.float64)
         #mask[int(np.random.rand()*len(mask))] = 1.0
         if np.random.rand()<=self.eps:
-            return np.random.normal(mu, sigma) 
+            return np.random.normal(mu, sigma)
         else:
             retVal = np.zeros(len(mu))
             retVal[np.argmax(mu)] = 1
             return retVal
-
 
 
     

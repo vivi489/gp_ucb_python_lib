@@ -149,10 +149,9 @@ class GMRF_BO(BaseBO):
         if environment.reload or burnin:
             if self.update_hyperparam is not None:
                 self.update_hyperparam()
-
         self.update()
         self.total_clicked_ratio_list = []
-
+        
         
     def do_all_point_burnin(self):
         n_sample_per_point = int(self.n_ctr / self.n_points)
@@ -193,9 +192,9 @@ class GMRF_BO(BaseBO):
         else:
             gamma_tilda = n_grid * gamma + gamma0  # Normal
 
-        # print ('gamma_tilda: {}'.format(gamma_tilda) )
+        #print ('gamma_tilda: {}'.format(gamma_tilda) )
         mu_tilda = np.array([s * gamma + self.ALPHA * gamma0 for s in sum_grid]) / gamma_tilda
-
+        
         tau1 = -scipy.sparse.diags(gamma_tilda)
         tau0 = self.baseTau0 * self.GAMMA_Y
 
@@ -210,7 +209,7 @@ class GMRF_BO(BaseBO):
         adj_idxes = scipy.sparse.find(self.baseTau0[idx] != 0)[1]
         return random.choice(adj_idxes)
 
-    def learn(self, drop=True):
+    def learn(self):
         T = self.point_info_manager.get_T(excludes_none=True) # T: the means of all the points; either normalized or not
         grid_idx = np.argmax(self.acquisition_func.compute(self.mu, self.sigma, T)) # this line is crucial
         continue_flg = self.sample(self.X_grid[grid_idx]) # self.sample alters the optimizer's point info manager which contains all the points
@@ -228,17 +227,27 @@ class GMRF_BO(BaseBO):
         self.update()
         return True
 
-    def learn_from_clicks(self, mu2ratio_dir='./mu2ratio_ts', mu_sigma_csv_path='./mu2ratio/mu_sigma.csv',
-                          ratio_csv_out_path='./mu2ratio/ratios.csv'):
+    def learn_from_clicks(self, mu2ratio_dir=None, mu_sigma_csv_path=None,
+                          ratio_csv_out_path=None):
         if not self.acquisition_func.name == 'ts':
+            #print(self.acquisition_func.name)
             T = self.point_info_manager.get_T(excludes_none=True)
-            acValues = self.acquisition_func.compute(self.mu, self.sigma, T)
-            clickProbDistribution = acValues / acValues.sum()
-            pd.DataFrame(list(zip(range(len(self.mu)), clickProbDistribution))).to_csv(ratio_csv_out_path, header=False, index=False)
+            #print("mu=", self.mu, "sigma=", self.sigma)
+            clickProbDistribution = self.acquisition_func.compute(self.mu, self.sigma, T)
+            clickProbDistribution -= clickProbDistribution.min()
+            clickProbDistribution /= clickProbDistribution.sum()
+            #print("clickProbDistribution", clickProbDistribution)
+            df_ratio = pd.DataFrame(list(zip(range(len(self.mu)), clickProbDistribution)))
+            #print("df_ratio\n", df_ratio)
+            df_ratio.to_csv(ratio_csv_out_path, header=False, index=False)
         else:
+            #print("mu=", self.mu, "sigma=", self.sigma)
             self.call_mu2ratio(mu2ratio_dir=mu2ratio_dir, mu_sigma_csv_path=mu_sigma_csv_path, ratio_csv_out_path=ratio_csv_out_path) #generate a ratio csv
         self.sample_using_ratio_csv(ratio_csv_out_path)
+        #print("point_info_manager.T_mean, point_info_manager.T_std", self.point_info_manager.T_mean, self.point_info_manager.T_std)
+        #print("before update mu=", self.mu, "sigma=", self.sigma)
         self.update()
+        #print("after update mu=", self.mu, "sigma=", self.sigma)
         self.save_mu_sigma_csv(mu_sigma_csv_path)
         n_total_clicked = self.environment.result_df.output.values[-self.n_points:].astype(np.float64).sum()
         total_clicked_ratio = n_total_clicked / self.n_ctr
@@ -255,7 +264,7 @@ class GMRF_BO(BaseBO):
         cov = scipy.sparse.csc_matrix(factor(np.eye(A.shape[0])))
         # end = time.time() - start
         # print("one calc: %s sec" % end)
-        
+        #print("A, B, mu_tilda, gamma_tilda ", A, B, mu_tilda, gamma_tilda)
         self.mu = mat_flatten(cov.dot(B).dot(mu_tilda))
         self.sigma = mat_flatten(np.sqrt(cov[np.diag_indices_from(cov)]))
         
