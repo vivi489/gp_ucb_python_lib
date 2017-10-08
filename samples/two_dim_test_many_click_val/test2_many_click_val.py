@@ -35,14 +35,13 @@ class ClickTwoDimGaussianEnvironment(BasicEnvironment):
         super().__init__(bo_param2model_param_dic, result_filename, output_dir, reload)
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
-        mean1 = [3, 3]
-        cov1 = [[2, 0], [0, 2]]
-
-        mean2 = [-2, -2]
-        cov2 = [[1, 0], [0, 1]]
-
+        mean1 = [-3, 3]
+        cov1 = [[0.025, 0], [0, 0.025]]
+        mean2 = [0, 0]
+        cov2 = [[2.25, 0], [0, 2.25]]
         mean3 = [3, -3]
-        cov3 = [[0.7, 0], [0, 0.7]]
+        cov3 = [[0.25, 0], [0, 0.25]]
+
 
         assert x.ndim in [1, 2]
 

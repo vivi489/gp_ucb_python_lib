@@ -79,11 +79,11 @@ class PointInfoManager(object):
 
         if self.normalize_output == 'zero_mean_unit_var':
             observed_normalized_T, self.T_mean, self.T_std =\
-                normalization.zero_mean_unit_var_normalization(observed_real_T)
+                normalization.zero_mean_unit_var_normalization(observed_real_T, self.T_mean, self.T_std)
             #print("after get_normalized_T:", self.T_mean, self.T_std)
         elif self.normalize_output == 'zero_one':
             observed_normalized_T, self.T_lower, self.T_upper =\
-                normalization.zero_one_normalization(observed_real_T)
+                normalization.zero_one_normalization(observed_real_T, self.T_mean, self.T_std)
         else:
             pass
 

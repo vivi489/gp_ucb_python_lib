@@ -46,7 +46,7 @@ def run_grid(X, Y, Z):
 
 
 acFuncs = ["ucb", "pi", "ei", "greedy", "ts"]
-nTrials = 17
+nTrials = 30
 eval_csv_dir = "./eval"
 
 font = {'weight' : 'bold',

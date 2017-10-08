@@ -29,7 +29,7 @@ def computeRunningAvgRegret(fx_matrix, gTruthFunc, XRange):
     
     
 acFuncs = ["ucb", "pi", "ei", "ts", "greedy"]
-nTrials = 1
+nTrials = 2
 eval_csv_path = "./eval"
 
 font = {'weight' : 'bold',

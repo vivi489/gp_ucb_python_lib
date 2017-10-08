@@ -24,7 +24,8 @@ class ClickOneDimGaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         #print("run_model: n_exp=", n_exp)
-        prob = norm.pdf(x, loc=-2, scale=0.3) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
+        prob = norm.pdf(x, loc=-3, scale=0.15) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
+        #prob = norm.pdf(x, loc=-2, scale=0.3) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
         prob /= 3.0
         if calc_gt:
             #print("truth: ", logit(prob))
@@ -33,7 +34,6 @@ class ClickOneDimGaussianEnvironment(BasicEnvironment):
             return np.random.binomial(n=n_exp, p=prob)
         clicked = int(flip(prob))
         return clicked
-
 
 ########################
 ndim = 1
@@ -93,6 +93,7 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     MU2RATIO_DIR = './mu2ratio_%s'%ACQUISITION_FUNC
     mkdir_if_not_exist(OUTPUT_DIR)
     mkdir_if_not_exist(MU2RATIO_DIR)
+    mkdir_if_not_exist("./eval")
     
     param_names = sorted([x.replace('.csv', '') for x in os.listdir(parameter_dir)])
     
@@ -140,8 +141,8 @@ def singleTest(ACQUISITION_FUNC, trialCount):
             print("Learnig process was forced to stop!")
             # print(agent.X)
             # print(agent.Treal)
-            break
-
+            exit(0)
+    os.system("mv %s/*.csv ./eval/"%OUTPUT_DIR)
     #plot_1dim([agent.total_clicked_ratio_list, agent.randomly_total_clicked_ratio_list], 'total_clicked_ratio_list.png')
     #print(agent.total_clicked_ratio_list)
     #print(agent.randomly_total_clicked_ratio_list)
