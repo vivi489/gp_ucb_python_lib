@@ -28,8 +28,8 @@ def pdf(x):
 
 
 
-nTrials = 7
-acFuncs = ["ucb", "pi", "ts", "greedy"]
+nTrials = 30
+acFuncs = ["ucb", "ts", "greedy", "ei"] #["ucb", "ts", "greedy", "ei", "pi"]
 
 font = {'weight' : 'bold',
         'size'   : 16}
