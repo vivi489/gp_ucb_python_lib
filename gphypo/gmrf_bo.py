@@ -229,7 +229,7 @@ class GMRF_BO(BaseBO):
 
     def learn_from_clicks(self, mu2ratio_dir=None, mu_sigma_csv_path=None,
                           ratio_csv_out_path=None):
-        if not self.acquisition_func.name == 'ts':
+        if self.acquisition_func.name == 'greedy':
             #print(self.acquisition_func.name)
             T = self.point_info_manager.get_T(excludes_none=True)
             #print("mu=", self.mu, "sigma=", self.sigma)
@@ -240,9 +240,19 @@ class GMRF_BO(BaseBO):
             df_ratio = pd.DataFrame(list(zip(range(len(self.mu)), clickProbDistribution)))
             #print("df_ratio\n", df_ratio)
             df_ratio.to_csv(ratio_csv_out_path, header=False, index=False)
-        else:
-            #print("mu=", self.mu, "sigma=", self.sigma)
+        elif self.acquisition_func.name == 'ts':
             self.call_mu2ratio(mu2ratio_dir=mu2ratio_dir, mu_sigma_csv_path=mu_sigma_csv_path, ratio_csv_out_path=ratio_csv_out_path) #generate a ratio csv
+        else:
+            T = self.point_info_manager.get_T(excludes_none=True)
+            #print("mu=", self.mu, "sigma=", self.sigma)
+            clickProbDistribution = self.acquisition_func.compute(self.mu, self.sigma, T)
+            index_max = np.argmax(clickProbDistribution)
+            clickProbDistribution = np.zeros(len(clickProbDistribution))
+            clickProbDistribution[index_max] = 1.0
+            df_ratio = pd.DataFrame(list(zip(range(len(self.mu)), clickProbDistribution)))
+            #print("df_ratio\n", df_ratio)
+            df_ratio.to_csv(ratio_csv_out_path, header=False, index=False)
+            
         self.sample_using_ratio_csv(ratio_csv_out_path)
         #print("point_info_manager.T_mean, point_info_manager.T_std", self.point_info_manager.T_mean, self.point_info_manager.T_std)
         #print("before update mu=", self.mu, "sigma=", self.sigma)

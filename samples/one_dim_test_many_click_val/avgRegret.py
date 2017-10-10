@@ -23,13 +23,13 @@ def computerRegret(df, truthPdf, lenX):
     return runningAvg
 
 def pdf(x):
-    prob = norm.pdf(x, loc=-3, scale=0.15) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=0, scale=1.5)
+    prob = norm.pdf(x, loc=-3, scale=0.15) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=-1, scale=1.5)
     return prob / 3.0
 
 
 
-nTrials = 30
-acFuncs = ["ucb", "ts", "greedy", "ei"] #["ucb", "ts", "greedy", "ei", "pi"]
+nTrials = 1
+acFuncs = ["pi", "ts"] #["ucb", "ts", "greedy", "ei", "pi"]
 
 font = {'weight' : 'bold',
         'size'   : 16}
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     x = np.arange(-5.0, 5.1, 0.1)
     for acFunc in acFuncs:
         listAvgRegretsAllTrials = []
-        for i in range(nTrials):
+        for i in range(0, nTrials):
             eval_csv_path = os.path.join("./eval", "gaussian_result_1dim_clicks_%s_trialCount_%d.csv"%(acFunc, i))
             df = pd.DataFrame.from_csv(eval_csv_path, index_col=None)
             y = computerRegret(df, pdf, len(x))
