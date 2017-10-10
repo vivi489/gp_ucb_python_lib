@@ -1,0 +1,1 @@
+java -jar mu2ratio.jar mu_sigma.csv ratios.csv

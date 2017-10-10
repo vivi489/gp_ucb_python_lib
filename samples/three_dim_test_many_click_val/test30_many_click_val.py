@@ -23,7 +23,7 @@ class ClickThreeDimGaussianEnvironment(BasicEnvironment):
         cov1 = np.eye(3) * 0.75
         mean2 = [-2, -2, -2]
         cov2 = np.eye(3) * 0.75
-        mean3 = [0, 0, 0]
+        mean3 = [1, 1, 1]
         cov3 = np.eye(3) * 1.0
 
         prob = multivariate_normal.pdf(x, mean=mean1, cov=cov1) + multivariate_normal.pdf(x, mean=mean2, cov=cov2) \
@@ -82,7 +82,7 @@ def singleTest(ACQUISITION_FUNC, trialCount):
     OUTPUT_DIR = os.path.join(os.getcwd(), 'output_%s_clicks'%ACQUISITION_FUNC)
     if os.path.exists(OUTPUT_DIR):
         shutil.rmtree(OUTPUT_DIR)
-    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_2dim_clicks_%s_trialCount_%d.csv"%(ACQUISITION_FUNC, trialCount))
+    RESULT_FILENAME = os.path.join(OUTPUT_DIR, "gaussian_result_3dim_clicks_%s_trialCount_%d.csv"%(ACQUISITION_FUNC, trialCount))
 
     mu_sigma_csv_path = './mu2ratio_%s/mu_sigma.csv'%ACQUISITION_FUNC
     ratio_csv_out_path = './mu2ratio_%s/ratios.csv'%ACQUISITION_FUNC

@@ -30,15 +30,15 @@ def pdf(x):
     cov1 = np.eye(3) * 0.75
     mean2 = [-2, -2, -2]
     cov2 = np.eye(3) * 0.75
-    mean3 = [0, 0, 0]
+    mean3 = [1, 1, 1]
     cov3 = np.eye(3) * 1.0
     prob = multivariate_normal.pdf(x, mean=mean1, cov=cov1) + multivariate_normal.pdf(x, mean=mean2, cov=cov2) \
                + multivariate_normal.pdf(x, mean=mean3, cov=cov3)
     return prob * 3
 
 
-nTrials = 3
-acFuncs = ["ucb", "ts", "greedy", "ei"] #["ucb", "ts", "greedy", "ei", "pi"]
+nTrials = 30
+acFuncs = ["ucb", "ts", "greedy", "ei", "pi"]
 
 font = {'weight' : 'bold',
         'size'   : 16}

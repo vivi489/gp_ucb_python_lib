@@ -22,7 +22,7 @@ class ClickTwoDimGaussianEnvironment(BasicEnvironment):
         mean1 = [-3, 3]
         cov1 = [[0.5, 0], [0, 0.5]]
         
-        mean2 = [0, 0]
+        mean2 = [1, 1]
         cov2 = [[2.5, 0], [0, 2.5]]
         
         mean3 = [3, -3]
