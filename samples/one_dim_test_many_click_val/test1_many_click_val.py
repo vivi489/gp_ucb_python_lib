@@ -31,7 +31,9 @@ class ClickOneDimGaussianEnvironment(BasicEnvironment):
             #print("truth: ", logit(prob))
             return logit(prob)
         if n_exp > 1:
-            return np.random.binomial(n=n_exp, p=prob)
+            retVal = np.random.binomial(n=n_exp, p=prob)
+            #print(n_exp, x, prob, retVal)
+            return retVal
         clicked = int(flip(prob))
         return clicked
 

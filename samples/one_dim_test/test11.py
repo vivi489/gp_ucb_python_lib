@@ -43,7 +43,7 @@ class OneDimGaussianEnvironment(BasicEnvironment):
 
     def run_model(self, model_number, x, calc_gt=False, n_exp=1):
         assert x.ndim in [1, 2]
-        y = norm.pdf(x, loc=-3, scale=0.1) + norm.pdf(x, loc=3, scale=0.5) + norm.pdf(x, loc=0, scale=1.5)
+        y = norm.pdf(x, loc=-3, scale=0.1) + norm.pdf(x, loc=3, scale=0.5) + norm.pdf(x, loc=-1, scale=1.0)
         if not calc_gt:
             y += np.random.normal(loc=0, scale=np.sqrt(self.noiseVar))
         return y

@@ -40,7 +40,7 @@ def pdf(x):
     return prob
 
 
-nTrials = 30
+nTrials = 4
 acFuncs = ["ucb", "ts", "greedy", "ei", "pi"]
 
 font = {'weight' : 'bold',
@@ -51,7 +51,7 @@ matplotlib.rc('font', **font)
 if __name__ == '__main__':
     runningAvgRegret = {}
     colors = {"ucb":"black", "pi":"brown", "ei":"blue", "ts":"red", "greedy":"green"}
-    
+    labels = {"ucb":"GP-UCB", "pi":"PI", "ei":"EI", "ts":"TS", "greedy":"EPS"}
     x, y = np.array(np.meshgrid(np.arange(-5, 5, 1), np.arange(-5, 5, 1)))
     X = np.empty(x.shape + (2,))
     X[:, :, 0] = x; X[:, :, 1] = y
@@ -70,7 +70,10 @@ if __name__ == '__main__':
     for k, v in runningAvgRegret.items():
         handle, = plt.plot(v, color=colors[k], label=k)
         handles.append(handle)
-    plt.legend(handles, acFuncs)
+    plt.xlabel("Iteration Count")
+    plt.ylabel("Average Regret")
+    plt.yscale("log")
+    plt.legend(handles, [labels[k] for k in acFuncs])
     plt.savefig("eval.eps", format='eps')
     plt.close()
 

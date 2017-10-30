@@ -32,7 +32,7 @@ class ClickTwoDimGaussianEnvironment(BasicEnvironment):
 
         prob = multivariate_normal.pdf(x, mean=mean1, cov=cov1) + multivariate_normal.pdf(x, mean=mean2, cov=cov2) \
                + multivariate_normal.pdf(x, mean=mean3, cov=cov3)
-        prob /= 3
+        prob /= 3.0
 
         if calc_gt:
             return logit(prob)

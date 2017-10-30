@@ -29,7 +29,7 @@ def computeRunningAvgRegret(fx_matrix, gTruthFunc, XRange):
     
     
 acFuncs = ["ucb", "pi", "ei", "ts", "greedy"]
-nTrials = 2
+nTrials = 4
 eval_csv_path = "./eval"
 
 font = {'weight' : 'bold',
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     runningAvgRegret = {}
     colors = {"ucb":"black", "pi":"orange", "ei":"blue", "ts":"red", "greedy":"green"}
     
-    gTruthFunc = lambda x: norm.pdf(x, loc=-3, scale=0.1) + norm.pdf(x, loc=3, scale=0.5) + norm.pdf(x, loc=0, scale=1.5)
+    gTruthFunc = lambda x: norm.pdf(x, loc=-3, scale=0.1) + norm.pdf(x, loc=3, scale=0.5) + norm.pdf(x, loc=-1, scale=1.0)
     XRange = np.linspace(-5.0, 5.0, 1000)
     
     for acFunc in acFuncs:

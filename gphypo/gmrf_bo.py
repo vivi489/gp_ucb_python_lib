@@ -247,8 +247,9 @@ class GMRF_BO(BaseBO):
             #print("mu=", self.mu, "sigma=", self.sigma)
             clickProbDistribution = self.acquisition_func.compute(self.mu, self.sigma, T)
             index_max = np.argmax(clickProbDistribution)
-            clickProbDistribution = np.zeros(len(clickProbDistribution))
-            clickProbDistribution[index_max] = 1.0
+            clickProbDistribution = np.ones(len(clickProbDistribution))
+            clickProbDistribution[index_max] = self.n_ctr / 10.0
+            clickProbDistribution /= clickProbDistribution.sum()
             df_ratio = pd.DataFrame(list(zip(range(len(self.mu)), clickProbDistribution)))
             #print("df_ratio\n", df_ratio)
             df_ratio.to_csv(ratio_csv_out_path, header=False, index=False)

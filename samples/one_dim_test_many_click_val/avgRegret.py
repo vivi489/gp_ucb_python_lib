@@ -24,11 +24,12 @@ def computerRegret(df, truthPdf, lenX):
 
 def pdf(x):
     prob = norm.pdf(x, loc=-3, scale=0.15) + norm.pdf(x, loc=3, scale=0.7) + norm.pdf(x, loc=-1, scale=1.5)
-    return prob / 3.0
+    prob /= 3.0
+    return prob
 
 
 
-nTrials = 30
+nTrials = 3
 acFuncs = ["ucb", "ts", "greedy", "ei", "pi"]
 
 font = {'weight' : 'bold',
@@ -39,7 +40,7 @@ matplotlib.rc('font', **font)
 if __name__ == '__main__':
     runningAvgRegret = {}
     colors = {"ucb":"black", "pi":"brown", "ei":"blue", "ts":"red", "greedy":"green"}
-    
+    labels = {"ucb":"GP-UCB", "pi":"PI", "ei":"EI", "ts":"TS", "greedy":"EPS"}
     x = np.arange(-5.0, 5.1, 0.1)
     for acFunc in acFuncs:
         listAvgRegretsAllTrials = []
@@ -53,9 +54,13 @@ if __name__ == '__main__':
     handles = []
     plt.figure(figsize=(15, 10))
     for k, v in runningAvgRegret.items():
-        handle, = plt.plot(v, color=colors[k], label=k)
+        v[v==0] = 1
+        handle, = plt.plot(v, color=colors[k], label=labels[k])
         handles.append(handle)
-    plt.legend(handles, acFuncs)
+    plt.xlabel("Iteration Count")
+    plt.ylabel("Average Regret")
+    plt.yscale("log")
+    plt.legend(handles, [labels[k] for k in acFuncs])
     plt.savefig("eval.eps", format='eps')
     plt.close()
 
